@@ -8,7 +8,7 @@ SITO = os.path.join(RADICE, "_site")
 
 CASE = [  # cartella del sito, suffisso dei dati, nome sotto l'icona, colore della barra
     ("nowica", "", "Nowica", "#46789f"),
-    ("feodor", "_b", "Feodor's Place", "#785fa0"),
+    ("fiodor", "_b", "Fiodor's place", "#785fa0"),
 ]
 
 TESTA = """<link rel="manifest" href="manifest.webmanifest">
@@ -78,6 +78,10 @@ def main():
         fatte += 1
     open(os.path.join(SITO, "index.html"), "w", encoding="utf-8").write(
         '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>pogoda</title>')
+    # il primo indirizzo della seconda casa porta a quello nuovo
+    os.makedirs(os.path.join(SITO, "feodor"), exist_ok=True)
+    open(os.path.join(SITO, "feodor", "index.html"), "w", encoding="utf-8").write(
+        '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=../fiodor/"><link rel="canonical" href="../fiodor/">')
     open(os.path.join(SITO, "robots.txt"), "w").write("User-agent: *\nDisallow: /\n")
     if not fatte:
         raise SystemExit("nessuna pagina da pubblicare")

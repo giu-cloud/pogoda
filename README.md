@@ -1,6 +1,6 @@
 # pogoda
 
-Previsione meteo locale per due posti in montagna in Polonia (Nowica e Feodor's Place), costruita sopra i modelli meteo aperti e aggiornata ogni 3 ore.
+Previsione meteo locale per due posti in montagna in Polonia (Nowica e Fiodor's place), costruita sopra i modelli meteo aperti e aggiornata ogni 3 ore.
 
 - `archivio/`: osservazioni IMGW e previsioni dei modelli salvate a ogni giro.
 - `previsione/`: combinazione dei modelli, correzione di quota, avvisi, pagina in polacco e italiano.
