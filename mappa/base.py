@@ -70,7 +70,7 @@ def osm(bbox, lato):
     b = f"{math.floor(s * 10) / 10},{math.floor(o * 10) / 10},{math.ceil(n * 10) / 10},{math.ceil(e * 10) / 10}"
     acque = "river" if lato > 30 else "^(river|stream)$"
     op = "=" if lato > 30 else "~"
-    luoghi = "^(town|village|hamlet)$" if lato <= 10 else "^(town|village)$"
+    luoghi = "^(town|village|hamlet)$" if lato <= 10 else ("^(city|town)$" if lato > 100 else "^(town|village)$")
     q = (f'[out:json][timeout:90];(way["waterway"{op}"{acque}"]({b});node["place"~"{luoghi}"]({b});'
          f'node["natural"="peak"]["name"]["ele"]({b}););out geom;')
     for server in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
@@ -194,7 +194,7 @@ def carta(lat, lon, quota, lato):
     rgb *= np.clip(0.52 + 0.48 * rel, 0.55, 1.16)[..., None]
     # curve di livello brune, piu' marcate le direttrici
     inchiostro = np.array((0x7A, 0x5A, 0x3C), np.float32)
-    passo_curve, direttrici = (100, 500) if lato > 30 else ((50, 250) if lato > 10 else (20, 100))
+    passo_curve, direttrici = (200, 1000) if lato > 100 else ((100, 500) if lato > 30 else ((50, 250) if lato > 10 else (20, 100)))
     def curve(intervallo, forza):
         liv = np.floor(z / intervallo)
         bordo = np.zeros(liv.shape, dtype=bool)
@@ -222,13 +222,13 @@ def carta(lat, lon, quota, lato):
             continue
         t = x.get("tags", {})
         fx, fy = (x["lon"] - o) / (e - o), (n - x["lat"]) / (n - s)
-        if t.get("place") in ("town", "village", "hamlet") and t.get("name"):
+        if t.get("place") in ("city", "town", "village", "hamlet") and t.get("name"):
             pop = 0
             try:
                 pop = int(str(t.get("population", "0")).replace(" ", ""))
             except ValueError:
                 pass
-            paesi.append({"n": t["name"], "x": round(fx, 4), "y": round(fy, 4), "c": {"town": 1, "village": 0}.get(t["place"], -1), "p": pop})
+            paesi.append({"n": t["name"], "x": round(fx, 4), "y": round(fy, 4), "c": {"city": 1, "town": 1 if lato <= 100 else 0, "village": 0}.get(t["place"], -1), "p": pop})
         elif t.get("natural") == "peak":
             try:
                 cime.append({"n": t["name"], "x": round(fx, 4), "y": round(fy, 4), "q": round(float(str(t["ele"]).replace(",", ".").split()[0]))})
@@ -243,7 +243,7 @@ def carta(lat, lon, quota, lato):
                 break
         return scelti
     paesi = sfoltisci(paesi, lambda p: (p["c"], p["p"]), 0.13, 16)
-    nomi_fiumi = fiumi_con_nome(el, s, n, o, e, 4 if lato > 30 else 3)
+    nomi_fiumi = fiumi_con_nome(el, s, n, o, e, 5 if lato > 100 else (4 if lato > 30 else 3))
     cime = sfoltisci(cime, lambda p: p["q"], 0.16, 7)
     img = img.resize((NOUT, NOUT), Image.LANCZOS)
     os.makedirs(os.path.join(QUI, "base" + SUF), exist_ok=True)
@@ -251,6 +251,12 @@ def carta(lat, lon, quota, lato):
     k = NB // NDEM
     zd = z.reshape(NDEM, k, NDEM, k).mean(axis=(1, 3))
     zc = float(z[NB // 2 - 3:NB // 2 + 3, NB // 2 - 3:NB // 2 + 3].mean())
+    # rugosita' del suolo per l'atlante del vento (media dei logaritmi su ogni cella del rilievo)
+    Z0 = np.full(256, 0.1, np.float32)
+    for c, v in {10: 0.8, 20: 0.15, 30: 0.03, 40: 0.06, 50: 0.7, 60: 0.01, 70: 0.005, 80: 0.0003, 90: 0.05, 100: 0.03}.items():
+        Z0[c] = v
+    rug = np.exp(np.log(Z0[cov]).reshape(NDEM, k, NDEM, k).mean(axis=(1, 3)))
+    np.save(os.path.join(QUI, "base" + SUF, f"rug_{lato}.npy"), rug.astype(np.float16))
     json.dump({"n": NDEM, "dem": base64.b64encode(np.clip(zd, 0, 65535).astype("<u2").tobytes()).decode(),
                "zmin": round(float(z.min())), "zmax": round(float(z.max())), "quota_dem_centro": round(zc),
                "bosco_pct": round(float((cov == 10).mean()) * 100), "paesi": paesi, "cime": cime, "fiumi": fiumi, "nomi_fiumi": nomi_fiumi, "lato_km": lato,

@@ -1,16 +1,16 @@
 name: mappa-base
-# Carte di base di tutte le case: gira solo quando cambia mappa/base.py o a mano. Fino a 10 minuti.
+# Carte di base e atlante del vento di tutte le case: gira solo quando cambiano o a mano. Circa 20-30 minuti (deposito pubblico: minuti gratuiti).
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["mappa/base.py", "mappa/geo.py", ".github/workflows/mappa-base.yml"]
+    paths: ["mappa/base.py", "mappa/geo.py", "mappa/vento.py", "mappa/solutore.py", ".github/workflows/mappa-base.yml"]
 permissions:
   contents: write
 jobs:
   base:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 60
     env:
       CASA_LAT: ${{ secrets.CASA_LAT }}
       CASA_LON: ${{ secrets.CASA_LON }}
@@ -20,13 +20,15 @@ jobs:
       FIODOR_QUOTA: ${{ secrets.FIODOR_QUOTA }}
     steps:
       - uses: actions/checkout@v4
-      - run: pip install --quiet rasterio numpy pillow
+      - run: pip install --quiet rasterio numpy pillow scipy pyamg
       - name: carte
         run: |
           for s in a b; do
-            if [ "$s" = "a" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -f mappa/base/base_20.jpg ]; then echo "casa a: carta gia' fatta"; continue; fi
             SITO=$s python3 mappa/base.py
           done
+      - name: atlante del vento
+        run: |
+          for s in a b; do SITO=$s python3 mappa/vento.py; done
       - name: salva
         run: |
           git config user.name "pogoda"

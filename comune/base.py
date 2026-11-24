@@ -8,8 +8,8 @@ UA = {"User-Agent": "meteo-casa/0.1 (progetto personale non commerciale)"}
 # Le case seguite. Ognuna ha i suoi Secrets (PREFISSO_LAT, PREFISSO_LON, PREFISSO_QUOTA) e le sue cartelle.
 # La casa in lavorazione si sceglie con la variabile SITO (a, b, ...).
 SITI = {
-    "a": {"prefisso": "CASA", "lati": [50, 20], "titolo": {"pl": "Nowica", "it": "Nowica"}, "casa": {"pl": "Dom", "it": "Casa"}},
-    "b": {"prefisso": "FIODOR", "lati": [20, 7], "titolo": {"pl": "Fiodor's place", "it": "Fiodor's place"}, "casa": {"pl": "Fiodor's place", "it": "Fiodor's place"}},
+    "a": {"prefisso": "CASA", "lati": [150, 50, 20], "titolo": {"pl": "Nowica", "it": "Nowica"}, "casa": {"pl": "Dom", "it": "Casa"}},
+    "b": {"prefisso": "FIODOR", "lati": [60, 20, 7], "titolo": {"pl": "Fiodor's place", "it": "Fiodor's place"}, "casa": {"pl": "Fiodor's place", "it": "Fiodor's place"}},
 }
 SITO = os.environ.get("SITO", "a")
 CFG = SITI[SITO]
