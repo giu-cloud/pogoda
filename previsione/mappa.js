@@ -28,8 +28,8 @@ function carica(k){const m=MM.m[k];scalaK=k;
    for(let a=0;a<4;a++)for(let b=0;b<4;b++){gi[q+j]=cl(y0-1+a)*G+cl(x0-1+b);gw[q+j]=ay[a]*ax[b];j++}}
   // atlante del vento: risposte del rilievo a un vento unitario, riportate sulla griglia della carta
   let at=null;
-  if(m.v){const nv=m.v.n,bv=atob(m.v.f),nf=bv.length/2/(nv*nv),raw=new Float32Array(nf*nv*nv);
-   for(let i=0;i<raw.length;i++){let x=bv.charCodeAt(2*i)|(bv.charCodeAt(2*i+1)<<8);if(x>32767)x-=65536;raw[i]=x/100}
+  if(m.v){const nv=m.v.n,bv=atob(m.v.f),otto=!!m.v.scala,by=otto?1:2,nf=bv.length/by/(nv*nv),raw=new Float32Array(nf*nv*nv);
+   for(let i=0;i<raw.length;i++){if(otto){let x=bv.charCodeAt(i);if(x>127)x-=256;raw[i]=x/m.v.scala}else{let x=bv.charCodeAt(2*i)|(bv.charCodeAt(2*i+1)<<8);if(x>32767)x-=65536;raw[i]=x/100}}
    at=[];for(let f=0;f<nf;f++){const a=new Float32Array(n*n);
     for(let r=0;r<n;r++)for(let c=0;c<n;c++){const fx=Math.max(0,Math.min(nv-1.001,(c+.5)/n*nv-.5)),fy=Math.max(0,Math.min(nv-1.001,(r+.5)/n*nv-.5)),x0=Math.floor(fx),y0=Math.floor(fy),wx=fx-x0,wy=fy-y0,o=f*nv*nv;
      a[r*n+c]=(raw[o+y0*nv+x0]*(1-wx)+raw[o+y0*nv+x0+1]*wx)*(1-wy)+(raw[o+(y0+1)*nv+x0]*(1-wx)+raw[o+(y0+1)*nv+x0+1]*wx)*wy}

@@ -213,7 +213,7 @@ def carta(lat, lon, quota, lato):
             grosso = x.get("tags", {}).get("waterway") == "river"
             if not grosso and not x.get("tags", {}).get("name"):
                 continue  # i rigagnoli senza nome riempirebbero la carta
-            d.line([px(g["lat"], g["lon"]) for g in x["geometry"]], fill=(66, 128, 204), width=4 if grosso else 3, joint="curve")
+            d.line([px(g["lat"], g["lon"]) for g in x["geometry"]], fill=(66, 128, 204), width=(3 if lato > 100 else 4) if grosso else 3, joint="curve")
             fiumi += 1
     dentro = lambda la, lo: s < la < n and o < lo < e
     paesi, cime = [], []

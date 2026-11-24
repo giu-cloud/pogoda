@@ -7,7 +7,7 @@ qui due risposte per tre classi di stabilita' (neutra, stabile, molto stabile), 
 con il vento del modello. Il calcolo pesante si fa una volta, quando cambia la carta di base.
 
 Scrive mappa/base*/vento_<lato>.json: per ogni classe, le componenti est e nord del vento a 10 m dal suolo
-per un vento unitario verso est e verso nord, in centesimi, su una griglia di 100 x 100."""
+per un vento unitario verso est e verso nord, in sessantesimi (8 bit), su una griglia di 100 x 100."""
 import base64, json, os, sys, time
 import numpy as np
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -72,8 +72,8 @@ def atlante(lato):
             us, vs = al_suolo(u, v, aria, h, zc, z0)
             campi += [ricampiona(us, NV), ricampiona(vs, NV)]
     rilievo = float(np.percentile(h, 98) - np.percentile(h, 2))
-    q = np.clip(np.round(np.stack(campi) * 100), -32000, 32000).astype("<i2")
-    out = {"n": NV, "classi": CLASSI, "rilievo": round(rilievo), "f": base64.b64encode(q.tobytes()).decode()}
+    q = np.clip(np.round(np.stack(campi) * 60), -127, 127).astype(np.int8)  # passo 1/60: bastano 8 bit
+    out = {"n": NV, "classi": CLASSI, "rilievo": round(rilievo), "scala": 60, "f": base64.b64encode(q.tobytes()).decode()}
     json.dump(out, open(os.path.join(cart, f"vento_{lato}.json"), "w"), separators=(",", ":"))
     sp = np.hypot(campi[0], campi[1])
     print(f"vento {lato} km: {len(zc)} livelli, dx {dx:.0f} m, rilievo {rilievo:.0f} m, "
