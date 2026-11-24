@@ -391,10 +391,10 @@ CSS_MAPPA = """
 JS_MAPPA = r"""
 (function(){
 const MM=__DATI__,TXT=__TXT__;
-let lang='pl';try{lang=localStorage.getItem('lng')||'pl'}catch(e){}
+let lang='pl';
 if(!TXT[lang])lang='pl';
 const box=document.getElementById('mappa');
-function lingua(l){lang=l;document.body.dataset.l=l;try{localStorage.setItem('lng',l)}catch(e){}
+function lingua(l){lang=l;document.body.dataset.l=l;
  document.querySelectorAll('.lsw button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.l===l));
  if(box){const d=document.querySelector('.lng[data-l="'+l+'"] [data-mappa]');if(d)d.appendChild(box);testi()}}
 document.querySelectorAll('.lsw button').forEach(b=>b.addEventListener('click',()=>lingua(b.dataset.l)));
@@ -406,26 +406,36 @@ const cv=Q('ov'),cx=cv.getContext('2d');
 function carica(k){const m=MM.m[k];scalaK=k;
  if(!m.pronto){m.c.z=pul(m.c.z);['T','Td','pr','low','ws','wd','wg'].forEach(q=>{m.c[q]=m.c[q].map(pul)});
   const n=m.n,bin=atob(m.dem),d=new Uint16Array(n*n);for(let i=0;i<n*n;i++)d[i]=bin.charCodeAt(2*i)|(bin.charCodeAt(2*i+1)<<8);
-  const gi=new Uint16Array(n*n),wx=new Float32Array(n*n),wy=new Float32Array(n*n);
-  for(let r=0;r<n;r++)for(let c=0;c<n;c++){const gx=(c+.5)/n*(G-1),gy=(r+.5)/n*(G-1),x0=Math.min(G-2,Math.floor(gx)),y0=Math.min(G-2,Math.floor(gy)),q=r*n+c;gi[q]=y0*G+x0;wx[q]=gx-x0;wy[q]=gy-y0}
-  m.d=d;m.gi=gi;m.wx=wx;m.wy=wy;m.pronto=true}
- C=m.c;N=m.n;H=C.ore;dem=m.d;I=m.gi;WX=m.wx;WY=m.wy;ACC=m.acc||null;cv.width=N;cv.height=N;im=cx.createImageData(N,N);
+  // interpolazione bicubica (Catmull-Rom) della griglia del modello: niente spigoli a quadretti
+  const gi=new Uint16Array(16*n*n),gw=new Float32Array(16*n*n);
+  const cr=t=>{const t2=t*t,t3=t2*t;return[(-t3+2*t2-t)/2,(3*t3-5*t2+2)/2,(-3*t3+4*t2+t)/2,(t3-t2)/2]};
+  const cl=v=>Math.max(0,Math.min(G-1,v));
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){const gx=(c+.5)/n*(G-1),gy=(r+.5)/n*(G-1),x0=Math.min(G-2,Math.floor(gx)),y0=Math.min(G-2,Math.floor(gy)),q=16*(r*n+c);
+   const ax=cr(gx-x0),ay=cr(gy-y0);let j=0;
+   for(let a=0;a<4;a++)for(let b=0;b<4;b++){gi[q+j]=cl(y0-1+a)*G+cl(x0-1+b);gw[q+j]=ay[a]*ax[b];j++}}
+  m.d=d;m.gi=gi;m.gw=gw;m.pronto=true}
+ C=m.c;N=m.n;H=C.ore;dem=m.d;I=m.gi;WX=m.gw;ACC=m.acc||null;cv.width=N;cv.height=N;im=cx.createImageData(N,N);
  if(ora>H-1)ora=H-1;Q('cur').max=H-1;Q('cur').value=ora;sel=null;
  document.querySelectorAll('#mw [data-k]').forEach(e=>{e.style.display=e.dataset.k===k?'':'none'});
  S=document.querySelector('#mw svg[data-k="'+k+'"]');
  document.querySelectorAll('#scale button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k))}
-function bl(a,k){const i=I[k],wx=WX[k],wy=WY[k];return(a[i]*(1-wx)+a[i+1]*wx)*(1-wy)+(a[i+G]*(1-wx)+a[i+G+1]*wx)*wy}
+function bl(a,k){const q=16*k;let v=0;for(let j=0;j<16;j++)v+=a[I[q+j]]*WX[q+j];return v}
 const sat=x=>Math.exp(17.625*x/(243.04+x));
 function tw(t,u){u=Math.max(5,Math.min(99,u));return t*Math.atan(0.151977*Math.sqrt(u+8.313659))+Math.atan(t+u)-Math.atan(u-1.676331)+0.00391838*Math.pow(u,1.5)*Math.atan(0.023101*u)-4.686035}
 function punto(k,h){const z0=bl(C.z,k),T0=bl(C.T[h],k)/10,D0=bl(C.Td[h],k)/10,g=C.gamma[h],dz=dem[k]-z0;
  const T=T0+g*dz/1000,Td=Math.min(T,D0-0.002*dz),ur=Math.min(100,100*sat(Td)/sat(T));
- const base=z0+125*Math.max(0,T0-D0),low=bl(C.low[h],k),nube=ur>=96||(g<-2&&base<=dem[k]&&low>=50);
- const pr=bl(C.pr[h],k)/10;
+ const base=z0+125*Math.max(0,T0-D0),low=Math.max(0,bl(C.low[h],k)),nube=ur>=96||(g<-2&&base<=dem[k]&&low>=50);
+ // precipitazione che cresce con la quota rispetto alla cella del modello (circa +6% ogni 100 m, valore tipico dei Carpazi)
+ const pr=Math.max(0,bl(C.pr[h],k)/10)*Math.max(0.6,Math.min(1.6,1+0.0006*dz));
+ const sn=Math.max(Math.min(1,Math.max(0,(ur-94)/3)),(g<-2&&low>=50)?Math.min(1,Math.max(0,(dem[k]-base+40)/80)):0);
  const w=tw(T,ur);
- return{z:dem[k],T:T,ur:ur,nube:nube,mgla:nube&&g>=-2&&dz<0,low:low,pr:pr,tw:w,neve:pr>=0.1&&w<=1.0,cm:pr<0.1?0:(w<=0.5?pr:(w<=1.5?pr*0.5:0)),ws:bl(C.ws[h],k),wg:bl(C.wg[h],k)}}
-// neve nuova accumulata dall'inizio della previsione fino a ogni ora, punto per punto (1 mm d'acqua = circa 1 cm di neve, senza fusione)
+ return{z:dem[k],T:T,ur:ur,nube:nube,sn:sn,mgla:nube&&g>=-2&&dz<0,low:low,pr:pr,tw:w,neve:pr>=0.1&&w<=1.0,cm:pr<0.1?0:(w<=0.5?pr:(w<=1.5?pr*0.5:0)),ws:bl(C.ws[h],k),wg:bl(C.wg[h],k)}}
+// neve fresca che resta al suolo, ora per ora e punto per punto: si aggiunge quella che cade (1 mm d'acqua = circa 1 cm)
+// e si toglie quella che fonde con il metodo dei gradi-ora (0,15 cm per grado sopra zero per ora, di piu' con la pioggia sopra).
+// Con la temperatura corretta per la quota di ogni punto, la neve resta sulle cime e sparisce nei fondovalle tiepidi.
 function accumula(){const m=MM.m[scalaK];if(m.acc){ACC=m.acc;return}
- const a=new Float32Array(H*N*N);for(let h=0;h<H;h++){const o=h*N*N,q=(h-1)*N*N;for(let k=0;k<N*N;k++)a[o+k]=(h?a[q+k]:0)+punto(k,h).cm}
+ const a=new Float32Array(H*N*N);for(let h=0;h<H;h++){const o=h*N*N,q=(h-1)*N*N;for(let k=0;k<N*N;k++){const p=punto(k,h);
+  const fusione=p.T>0?p.T*(0.15+(p.tw>1.5?0.12*p.pr:0)):0;a[o+k]=Math.max(0,(h?a[q+k]:0)+p.cm-fusione)}}
  m.acc=a;ACC=a}
 // classi a gradini, piu' facili da leggere di una sfumatura: [soglia minima, colore, etichetta]
 const SF=[[0.1,[214,218,252],'0,1'],[0.5,[160,155,235],'0,5'],[1,[118,98,210],'1'],[2,[78,42,160],'2+']];
@@ -439,10 +449,10 @@ function disegna(){const d=im.data;if(strato==4)accumula();
  for(let k=0;k<N*N;k++){let r=0,g=0,b=0,a=0;
   if(strato){const p=punto(k,ora);
    if(strato==6){const c=colT(p.T);r=c[0];g=c[1];b=c[2];a=150}
-   else if(strato==1){if(p.nube){r=250;g=250;b=253;a=222}else{r=95;g=102;b=118;a=Math.round(p.low*1.15)}}
+   else if(strato==1){const q=p.sn;r=95+155*q;g=102+148*q;b=118+135*q;a=Math.round(Math.max(222*q,p.low*1.15*(1-q)))}
    else if(strato==2){if(p.pr>=0.1&&p.tw>0.5){if(p.tw<=1.5){r=120;g=170;b=235}else{r=30;g=100;b=210}a=Math.min(235,Math.round(90+p.pr*90))}}
-   else if(strato==3){if(p.cm>=0.1){const q=classe(SF,p.cm);r=q[0];g=q[1];b=q[2];a=200}}
-   else if(strato==4){const c=ACC[ora*N*N+k];if(c>=0.5){const q=classe(SA,c);r=q[0];g=q[1];b=q[2];a=200}}
+   else if(strato==3){if(p.cm>=0.05){const q=classe(SF,p.cm);r=q[0];g=q[1];b=q[2];a=Math.round(210*Math.min(1,(p.cm-0.05)/0.1))}}
+   else if(strato==4){const c=ACC[ora*N*N+k];if(c>=0.3){const q=classe(SA,c);r=q[0];g=q[1];b=q[2];a=Math.round(210*Math.min(1,(c-0.3)/0.4))}}
    else{const v=Math.min(1,p.ws/50);r=98;g=80;b=214;a=Math.round(30+175*v)}}
   d[4*k]=r;d[4*k+1]=g;d[4*k+2]=b;d[4*k+3]=a}
  cx.putImageData(im,0,0);frecce();tempo();info()}
