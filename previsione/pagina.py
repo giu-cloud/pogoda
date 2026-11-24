@@ -427,22 +427,26 @@ function punto(k,h){const z0=bl(C.z,k),T0=bl(C.T[h],k)/10,D0=bl(C.Td[h],k)/10,g=
 function accumula(){const m=MM.m[scalaK];if(m.acc){ACC=m.acc;return}
  const a=new Float32Array(H*N*N);for(let h=0;h<H;h++){const o=h*N*N,q=(h-1)*N*N;for(let k=0;k<N*N;k++)a[o+k]=(h?a[q+k]:0)+punto(k,h).cm}
  m.acc=a;ACC=a}
-const SN=[[0.5,[236,240,255]],[2,[205,212,250]],[5,[170,170,240]],[10,[138,127,214]],[20,[110,85,190]],[40,[80,45,150]]];
-function colN(c){if(c<=SN[0][0])return SN[0][1];for(let i=1;i<SN.length;i++)if(c<=SN[i][0]){const a=SN[i-1],b=SN[i],w=(c-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*w,a[1][1]+(b[1][1]-a[1][1])*w,a[1][2]+(b[1][2]-a[1][2])*w]}return SN[SN.length-1][1]}
+// classi a gradini, piu' facili da leggere di una sfumatura: [soglia minima, colore, etichetta]
+const SF=[[0.1,[214,218,252],'0,1'],[0.5,[160,155,235],'0,5'],[1,[118,98,210],'1'],[2,[78,42,160],'2+']];
+const SA=[[0.5,[232,236,255],'0,5'],[2,[196,200,248],'2'],[5,[160,155,235],'5'],[10,[125,105,215],'10'],[20,[95,65,185],'20'],[40,[65,30,135],'40+']];
+function classe(S,v){let c=S[0][1];for(const x of S)if(v>=x[0])c=x[1];return c}
+function scalaClassi(S,unita){return '<div style="display:flex;gap:2px;margin:6px 0 2px">'+S.map(x=>'<div style="flex:1;text-align:center;font-size:.75rem;color:var(--ink2)"><div style="height:12px;border-radius:3px;background:rgb('+x[1].join(',')+')"></div>'+x[2]+'</div>').join('')+'<div style="align-self:flex-end;font-size:.75rem;color:var(--ink2);padding-left:4px">'+unita+'</div></div>'}
 const ST=[[-14,[49,54,149]],[-7,[69,117,180]],[-2,[116,173,209]],[0,[205,232,243]],[2,[255,250,200]],[6,[254,217,118]],[11,[253,160,80]],[17,[240,101,60]],[24,[212,45,38]],[32,[150,0,38]]];
 function colT(t){if(t<=ST[0][0])return ST[0][1];for(let i=1;i<ST.length;i++)if(t<=ST[i][0]){const a=ST[i-1],b=ST[i],w=(t-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*w,a[1][1]+(b[1][1]-a[1][1])*w,a[1][2]+(b[1][2]-a[1][2])*w]}return ST[ST.length-1][1]}
 const num=(x,n)=>x.toFixed(n||0).replace('.',',').replace('-','\u2212');
-function disegna(){const d=im.data;if(strato==3)accumula();
+function disegna(){const d=im.data;if(strato==4)accumula();
  for(let k=0;k<N*N;k++){let r=0,g=0,b=0,a=0;
   if(strato){const p=punto(k,ora);
-   if(strato==5){const c=colT(p.T);r=c[0];g=c[1];b=c[2];a=150}
+   if(strato==6){const c=colT(p.T);r=c[0];g=c[1];b=c[2];a=150}
    else if(strato==1){if(p.nube){r=250;g=250;b=253;a=222}else{r=95;g=102;b=118;a=Math.round(p.low*1.15)}}
    else if(strato==2){if(p.pr>=0.1&&p.tw>0.5){if(p.tw<=1.5){r=120;g=170;b=235}else{r=30;g=100;b=210}a=Math.min(235,Math.round(90+p.pr*90))}}
-   else if(strato==3){const c=ACC[ora*N*N+k];if(c>=0.5){const q=colN(c);r=q[0];g=q[1];b=q[2];a=Math.min(225,Math.round(130+c*6))}}
+   else if(strato==3){if(p.cm>=0.1){const q=classe(SF,p.cm);r=q[0];g=q[1];b=q[2];a=200}}
+   else if(strato==4){const c=ACC[ora*N*N+k];if(c>=0.5){const q=classe(SA,c);r=q[0];g=q[1];b=q[2];a=200}}
    else{const v=Math.min(1,p.ws/50);r=98;g=80;b=214;a=Math.round(30+175*v)}}
   d[4*k]=r;d[4*k+1]=g;d[4*k+2]=b;d[4*k+3]=a}
  cx.putImageData(im,0,0);frecce();tempo();info()}
-function frecce(){let s='';if(strato==4){const U=C.ws[ora].map((v,i)=>-v*Math.sin(C.wd[ora][i]*Math.PI/180)),V=C.ws[ora].map((v,i)=>-v*Math.cos(C.wd[ora][i]*Math.PI/180));
+function frecce(){let s='';if(strato==5){const U=C.ws[ora].map((v,i)=>-v*Math.sin(C.wd[ora][i]*Math.PI/180)),V=C.ws[ora].map((v,i)=>-v*Math.cos(C.wd[ora][i]*Math.PI/180));
   for(let r=0;r<6;r++)for(let c=0;c<6;c++){const fx=(c+.5)/6,fy=(r+.5)/6,k=Math.floor(fy*N)*N+Math.floor(fx*N),u=bl(U,k),v=bl(V,k),sp=Math.hypot(u,v);if(sp<2)continue;
    const L=26+Math.min(60,sp*1.6),ang=Math.atan2(u,v)*180/Math.PI,dd='M0 '+(L/2)+'V'+(-L/2)+'M-11 '+(-L/2+15)+'L0 '+(-L/2)+'L11 '+(-L/2+15);
    s+='<g transform="translate('+(fx*1000).toFixed(0)+' '+(fy*1000).toFixed(0)+') rotate('+ang.toFixed(0)+')"><path d="'+dd+'" fill="none" stroke="#fffdf5" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><path d="'+dd+'" fill="none" stroke="#1d1a4d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>'}}
@@ -457,10 +461,10 @@ function info(){const T=TXT[lang],sg=S.querySelector('.sg');if(sel==null){Q('inf
 function testi(){const T=TXT[lang];
  document.querySelectorAll('#strati button').forEach(b=>{const i=+b.dataset.s;b.textContent=T.strati[i];b.setAttribute('aria-pressed',i==strato)});
  document.querySelectorAll('#mw .casa-t').forEach(e=>{e.textContent=MM.casa[lang]+' '+MM.quota+' m'});
- let lg=[T.l_0,T.l_n,T.l_p,T.l_s,T.l_v,T.l_t][strato];let h='';
- if(strato==3){h='<div class="scala" style="background:linear-gradient(90deg,'+SN.map((s,i)=>'rgb('+s[1].join(',')+') '+(i/(SN.length-1)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche">'+SN.map(s=>'<span>'+num(s[0],s[0]<1?1:0)+'</span>').join('')+'</div>';
-  if(MM.suolo!=null)lg+=' · '+T.suolo+': '+MM.suolo+' cm'}
- if(strato==5){const a=-14,b=24;h='<div class="scala" style="background:linear-gradient(90deg,'+ST.filter(s=>s[0]<=b).map(s=>'rgb('+s[1].join(',')+') '+((s[0]-a)/(b-a)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche"><span>\u221214</span><span>\u22127</span><span>0</span><span>6</span><span>11</span><span>17</span><span>24</span></div>'}
+ let lg=[T.l_0,T.l_n,T.l_p,T.l_s,T.l_a,T.l_v,T.l_t][strato];let h='';
+ if(strato==3)h=scalaClassi(SF,T.cmh);
+ if(strato==4){h=scalaClassi(SA,'cm');if(MM.suolo!=null)lg+=' · '+T.suolo+': '+MM.suolo+' cm'}
+ if(strato==6){const a=-14,b=24;h='<div class="scala" style="background:linear-gradient(90deg,'+ST.filter(s=>s[0]<=b).map(s=>'rgb('+s[1].join(',')+') '+((s[0]-a)/(b-a)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche"><span>\u221214</span><span>\u22127</span><span>0</span><span>6</span><span>11</span><span>17</span><span>24</span></div>'}
  Q('leg').innerHTML=h+'<div>'+lg+' · '+T.modello+': '+MM.modello+'</div>';tempo();info()}
 Q('strati').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;strato=+b.dataset.s;testi();disegna()});
 Q('scale').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.k===scalaK)return;carica(b.dataset.k);try{localStorage.setItem('scala',b.dataset.k)}catch(x){}testi();disegna()});
@@ -529,7 +533,7 @@ def blocco_mappa(ris, mappe):
     suolo = next((o.get("suolo_cm") for o in ris["ore"][:3] if o.get("suolo_cm") is not None), None)
     dati = {"casa": CFG["casa"], "quota": round(ris["quota"]), "suolo": suolo, "modello": NOMI_MODELLI.get(primo.get("modello"), primo.get("modello")), "k": chiavi,
             "m": {k: {"n": m["base"]["n"], "dem": m["base"]["dem"], "c": m["campi"]} for k, m in mappe.items()}}
-    bott = "".join(f'<button type="button" data-s="{i}"></button>' for i in range(6))
+    bott = "".join(f'<button type="button" data-s="{i}"></button>' for i in range(7))
     scale = "".join(f'<button type="button" data-k="{k}">{k} × {k} km</button>' for k in chiavi)
     strati_img = "".join(f'<img data-k="{k}" alt="" src="data:image/jpeg;base64,{mappe[k]["jpg"]}">' for k in chiavi)
     etichette = "".join(svg_mappa(ris, mappe[k], k) for k in chiavi)
