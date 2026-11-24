@@ -247,6 +247,9 @@ def main():
             mappa[str(lato)] = {"base": json.load(open(os.path.join(radice, "base" + SUF, f"base_{lato}.json"))),
                                 "campi": json.load(open(os.path.join(radice, "uscita" + SUF, f"campi_{lato}.json"))),
                                 "jpg": base64.b64encode(open(os.path.join(radice, "base" + SUF, f"base_{lato}.jpg"), "rb").read()).decode()}
+            fv = os.path.join(radice, "base" + SUF, f"vento_{lato}.json")
+            if os.path.exists(fv):
+                mappa[str(lato)]["vento"] = json.load(open(fv))
         except Exception as ex:
             print(f"mappa {lato} km non disponibile:", type(ex).__name__, ex)
     mappa = mappa or None
