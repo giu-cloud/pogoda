@@ -1,0 +1,61 @@
+name: pogoda
+# Ogni 3 ore: osservazioni IMGW, previsioni dei modelli quando sono nuove, pagine delle due case pubblicate su GitHub Pages.
+# Deposito pubblico: i minuti di GitHub Actions sono gratuiti.
+on:
+  schedule:
+    - cron: "17 2-23/3 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["previsione/**.py", "archivio/**.py", "comune/**.py", "mappa/campi.py", "sito/**", ".github/workflows/pogoda.yml"]
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency: pogoda
+jobs:
+  giro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.pubblica.outputs.page_url }}
+    env:
+      CASA_LAT: ${{ secrets.CASA_LAT }}
+      CASA_LON: ${{ secrets.CASA_LON }}
+      CASA_QUOTA: ${{ secrets.CASA_QUOTA }}
+      FIODOR_LAT: ${{ secrets.FIODOR_LAT }}
+      FIODOR_LON: ${{ secrets.FIODOR_LON }}
+      FIODOR_QUOTA: ${{ secrets.FIODOR_QUOTA }}
+      FORZA_PREVISIONI: ${{ github.event_name != 'schedule' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: giro di tutte le case
+        run: |
+          fallito=0
+          for s in a b; do
+            export SITO=$s
+            python3 archivio/giro.py || fallito=1
+            python3 mappa/campi.py || fallito=1
+            python3 previsione/motore.py || fallito=1
+          done
+          echo "fallito=$fallito" >> $GITHUB_ENV
+      - name: salva l'archivio
+        run: |
+          git config user.name "pogoda"
+          git config user.email "actions@users.noreply.github.com"
+          git add archivio mappa
+          git diff --cached --quiet || git commit -q -m "Giro $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase --quiet
+          git push
+      - name: prepara il sito
+        run: python3 sito/costruisci.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: pubblica
+        id: pubblica
+        uses: actions/deploy-pages@v4
+      - name: esito
+        run: exit $fallito

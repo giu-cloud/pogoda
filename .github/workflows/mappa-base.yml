@@ -1,0 +1,37 @@
+name: mappa-base
+# Carte di base di tutte le case: gira solo quando cambia mappa/base.py o a mano. Fino a 10 minuti.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["mappa/base.py", "mappa/geo.py", ".github/workflows/mappa-base.yml"]
+permissions:
+  contents: write
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CASA_LAT: ${{ secrets.CASA_LAT }}
+      CASA_LON: ${{ secrets.CASA_LON }}
+      CASA_QUOTA: ${{ secrets.CASA_QUOTA }}
+      FIODOR_LAT: ${{ secrets.FIODOR_LAT }}
+      FIODOR_LON: ${{ secrets.FIODOR_LON }}
+      FIODOR_QUOTA: ${{ secrets.FIODOR_QUOTA }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy pillow
+      - name: carte
+        run: |
+          for s in a b; do
+            if [ "$s" = "a" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -f mappa/base/base_20.jpg ]; then echo "casa a: carta gia' fatta"; continue; fi
+            SITO=$s python3 mappa/base.py
+          done
+      - name: salva
+        run: |
+          git config user.name "pogoda"
+          git config user.email "actions@users.noreply.github.com"
+          git add mappa
+          git diff --cached --quiet || git commit -m "Carta di base"
+          git pull --rebase --quiet
+          git push
