@@ -120,7 +120,7 @@ def per_modello(nome, m, quota):
             "T": th, "Td": tdh, "UR": urh, "Tw": tw, "grad": grad * 1000, "nube": nube, "valle": valle,
             "base": base, "pr": pr, "fase": fase, "vento": g("wind_speed_10m", i), "raffica": g("wind_gusts_10m", i),
             "dir": g("wind_direction_10m", i), "basse": basse, "zero": g("freezing_level_height", i),
-            "nuv": g("cloud_cover", i), "vis": vis, "Tgrezza": tc,
+            "nuv": g("cloud_cover", i), "vis": vis, "Tgrezza": tc, "suolo": g("snow_depth", i),
             "temporale": bool((wc is not None and wc >= 95) or (cape is not None and cape >= 800 and (pr or 0) >= 0.5)),
         }
     return fuori
@@ -198,6 +198,7 @@ def calcola(prev, oss, quota, ora=None):
             "quota_neve": r1(None if zero is None else max(0.0, zero - 300.0), -2),
             "gelicidio": bool(tm is not None and tm <= 0.0 and pr >= 0.2 and fase == "pioggia"),
             "temporale": r1(sum(1 for x in v if x["temporale"]) / len(v), 2),
+            "suolo_cm": r1(None if len(c("suolo")) < 2 else quant(c("suolo"), 0.5) * 100, 0),
         })
     # ghiaccio sulle strade: intorno a zero (anche solo per i modelli piu' freddi) con fondo bagnato o aria satura
     for i, o in enumerate(ore):
@@ -217,7 +218,8 @@ def main():
     radice = os.path.join(QUI, "..", "mappa")
     if quota is None:  # senza quota dichiarata uso quella del rilievo al centro della carta
         try:
-            quota = float(json.load(open(os.path.join(radice, "base" + SUF, f"base_{LATI[-1]}.json")))["quota_dem_centro"])
+            carte = [os.path.join(radice, "base" + SUF, f"base_{l}.json") for l in sorted(LATI)]
+            quota = float(json.load(open(next(c for c in carte if os.path.exists(c))))["quota_dem_centro"])
         except Exception:
             print("Quota della casa non nota (ne' Secret ne' carta di base): salto.")
             return

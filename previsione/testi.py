@@ -75,13 +75,17 @@ TR = {
 }
 # testi usati dallo script della mappa
 JS = {
-"pl": dict(strati=["Teren", "Temperatura", "Chmura / mgła", "Opad", "Wiatr"], tocca="Dotknij mapy, aby zobaczyć wartości w tym miejscu.",
+"pl": dict(strati=["Teren", "Chmura / mgła", "Deszcz", "Śnieg", "Wiatr", "Temperatura"],
+           l_s="nowy śnieg od teraz do wybranej godziny, w cm (z modelu, bez topnienia)", suolo="pokrywa śnieżna przy domu teraz (modele)", nuova="nowy śnieg",
+           f_neve="śnieg", f_mista="deszcz ze śniegiem", f_pioggia="deszcz", tocca="Dotknij mapy, aby zobaczyć wartości w tym miejscu.",
            in_nube="w chmurze", nebbia="we mgle (dolina)", fuori_nube="poza chmurą", l_t="°C przy gruncie; niebieskie = mróz",
-           l_n="białe: teren w chmurze albo we mgle (przy inwersji mgła zostaje w dolinach) · szare: chmury niskie powyżej", l_p="niebieski: deszcz · różowy: śnieg (mm/h)", l_v="wiatr średni, km/h; strzałki: kierunek",
+           l_n="białe: teren w chmurze albo we mgle (przy inwersji mgła zostaje w dolinach) · szare: chmury niskie powyżej", l_p="niebieski: deszcz · jasnoniebieski: deszcz ze śniegiem (śnieg: przycisk Śnieg)", l_v="wiatr średni, km/h; strzałki: kierunek",
            l_0="rzeźba, lasy (ciemna zieleń), zabudowa (czerwień), woda", modello="model", vento="wiatr", raffica="poryw", pioggia="opad", ur="wilg."),
-"it": dict(strati=["Terreno", "Temperatura", "Nube / nebbia", "Pioggia e neve", "Vento"], tocca="Tocca la mappa per vedere i valori in quel punto.",
+"it": dict(strati=["Terreno", "Nube / nebbia", "Pioggia", "Neve", "Vento", "Temperatura"],
+           l_s="neve nuova da adesso fino all'ora scelta, in cm (dal modello, senza fusione)", suolo="neve al suolo alla casa adesso (modelli)", nuova="neve nuova",
+           f_neve="neve", f_mista="mista", f_pioggia="pioggia", tocca="Tocca la mappa per vedere i valori in quel punto.",
            in_nube="nella nube", nebbia="nella nebbia (fondovalle)", fuori_nube="fuori dalla nube", l_t="°C al suolo; blu = gelo",
-           l_n="bianco: terreno nella nube o nella nebbia (con l'inversione la nebbia resta nelle valli) · grigio: nubi basse sopra", l_p="blu: pioggia · rosa: neve (mm/h)", l_v="vento medio, km/h; frecce: direzione",
+           l_n="bianco: terreno nella nube o nella nebbia (con l'inversione la nebbia resta nelle valli) · grigio: nubi basse sopra", l_p="blu: pioggia · azzurro: pioggia mista a neve (la neve ha il suo bottone)", l_v="vento medio, km/h; frecce: direzione",
            l_0="rilievo, boschi (verde scuro), abitati (rosso), acqua", modello="modello", vento="vento", raffica="raffica", pioggia="precip.", ur="UR"),
 }
 NOMI_MODELLI = {"chmi_aladin_central_europe_2km": "ALADIN CHMI 2,3 km", "icon_eu": "ICON-EU 7 km"}

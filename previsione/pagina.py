@@ -21,9 +21,9 @@ PX, SX, DX, ORE_GRAF = 13, 34, 12, 72
 
 CSS = """
 :root{color-scheme:light dark;--bg:#f4f3ef;--card:#fcfcfb;--ink:#0b0b0b;--ink2:#52514e;--ink3:#8a8984;--line:#e3e1da;
---c1:#2a78d6;--c2:#eb6834;--c5:#e87ba4;--fog:#6f7f93;--ok:#1a7f4b;--warn:#b25e00;--bad:#c0392b;--chip:#eeece6}
+--c1:#2a78d6;--c2:#eb6834;--c5:#8a7fd6;--fog:#6f7f93;--ok:#1a7f4b;--warn:#b25e00;--bad:#c0392b;--chip:#eeece6}
 @media (prefers-color-scheme:dark){:root{--bg:#121211;--card:#1a1a19;--ink:#f0efec;--ink2:#c3c2b7;--ink3:#8d8c85;--line:#2e2e2b;
---c1:#3987e5;--c2:#d95926;--c5:#d55181;--fog:#8fa0b5;--ok:#4cc38a;--warn:#e0a03a;--bad:#e66767;--chip:#262624}}
+--c1:#3987e5;--c2:#d95926;--c5:#a197e8;--fog:#8fa0b5;--ok:#4cc38a;--warn:#e0a03a;--bad:#e66767;--chip:#262624}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 main{max-width:760px;margin:0 auto;padding:16px 14px 40px}
 h1{font-size:1.5rem;margin:.2em 0 0}h2{font-size:1.05rem;margin:0 0 .6em}
@@ -374,7 +374,14 @@ CSS_MAPPA = """
 .mw{position:relative;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;background:#9db;touch-action:manipulation}
 .mw img,.mw canvas,.mw svg{position:absolute;inset:0;width:100%;height:100%}
 .mw text{font:600 24px system-ui,sans-serif;fill:#14140f;paint-order:stroke;stroke:#fffdf5;stroke-width:5px;stroke-linejoin:round}
-.mw text.st{font-size:23px}.mw text.pi{font-weight:500;font-size:20px;fill:#33332c}
+.mw text.st{font-size:22px}
+.mw text.pi,.mw text.ci,.mw text.fi,.mw text.casa-t{font-family:'Garamond Stara',Georgia,'Times New Roman',serif;font-weight:500;stroke:#f6efdc;stroke-width:4.5px}
+.mw text.pi{font-size:28px;fill:#2a2118;letter-spacing:.5px}
+.mw text.pi.mi{font-size:34px;font-variant:small-caps;letter-spacing:2.5px}
+.mw text.pi.fr{font-size:24px;font-style:italic}
+.mw text.ci{font-size:25px;font-style:italic;fill:#5a3d1e}
+.mw text.fi{font-size:28px;font-style:italic;fill:#24508c;letter-spacing:4px;stroke-width:4px}
+.mw text.casa-t{font-size:27px;font-style:italic;fill:#7d1f16}
 .tempo{display:flex;align-items:center;gap:10px;margin:10px 0 4px}.tempo input{flex:1;min-width:0;accent-color:var(--c1)}
 .tl{font-variant-numeric:tabular-nums;font-weight:600;min-width:8.5em;text-align:right;font-size:.92rem}
 .scala{height:10px;border-radius:5px;margin:6px 0 2px}.tacche{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink2)}
@@ -394,7 +401,7 @@ document.querySelectorAll('.lsw button').forEach(b=>b.addEventListener('click',(
 if(!box||!MM){lingua(lang);return}
 const Q=id=>document.getElementById(id),G=13;
 const pul=a=>a.map(x=>x==null?0:x);
-let C,N,H,dem,I,WX,WY,S,scalaK=null,im,ora=0,strato=1,sel=null,giro=null;
+let C,N,H,dem,I,WX,WY,S,scalaK=null,im,ora=0,strato=0,sel=null,giro=null,ACC=null;
 const cv=Q('ov'),cx=cv.getContext('2d');
 function carica(k){const m=MM.m[k];scalaK=k;
  if(!m.pronto){m.c.z=pul(m.c.z);['T','Td','pr','low','ws','wd','wg'].forEach(q=>{m.c[q]=m.c[q].map(pul)});
@@ -402,7 +409,7 @@ function carica(k){const m=MM.m[k];scalaK=k;
   const gi=new Uint16Array(n*n),wx=new Float32Array(n*n),wy=new Float32Array(n*n);
   for(let r=0;r<n;r++)for(let c=0;c<n;c++){const gx=(c+.5)/n*(G-1),gy=(r+.5)/n*(G-1),x0=Math.min(G-2,Math.floor(gx)),y0=Math.min(G-2,Math.floor(gy)),q=r*n+c;gi[q]=y0*G+x0;wx[q]=gx-x0;wy[q]=gy-y0}
   m.d=d;m.gi=gi;m.wx=wx;m.wy=wy;m.pronto=true}
- C=m.c;N=m.n;H=C.ore;dem=m.d;I=m.gi;WX=m.wx;WY=m.wy;cv.width=N;cv.height=N;im=cx.createImageData(N,N);
+ C=m.c;N=m.n;H=C.ore;dem=m.d;I=m.gi;WX=m.wx;WY=m.wy;ACC=m.acc||null;cv.width=N;cv.height=N;im=cx.createImageData(N,N);
  if(ora>H-1)ora=H-1;Q('cur').max=H-1;Q('cur').value=ora;sel=null;
  document.querySelectorAll('#mw [data-k]').forEach(e=>{e.style.display=e.dataset.k===k?'':'none'});
  S=document.querySelector('#mw svg[data-k="'+k+'"]');
@@ -414,16 +421,24 @@ function punto(k,h){const z0=bl(C.z,k),T0=bl(C.T[h],k)/10,D0=bl(C.Td[h],k)/10,g=
  const T=T0+g*dz/1000,Td=Math.min(T,D0-0.002*dz),ur=Math.min(100,100*sat(Td)/sat(T));
  const base=z0+125*Math.max(0,T0-D0),low=bl(C.low[h],k),nube=ur>=96||(g<-2&&base<=dem[k]&&low>=50);
  const pr=bl(C.pr[h],k)/10;
- return{z:dem[k],T:T,ur:ur,nube:nube,mgla:nube&&g>=-2&&dz<0,low:low,pr:pr,neve:pr>=0.1&&tw(T,ur)<=1.0,ws:bl(C.ws[h],k),wg:bl(C.wg[h],k)}}
+ const w=tw(T,ur);
+ return{z:dem[k],T:T,ur:ur,nube:nube,mgla:nube&&g>=-2&&dz<0,low:low,pr:pr,tw:w,neve:pr>=0.1&&w<=1.0,cm:pr<0.1?0:(w<=0.5?pr:(w<=1.5?pr*0.5:0)),ws:bl(C.ws[h],k),wg:bl(C.wg[h],k)}}
+// neve nuova accumulata dall'inizio della previsione fino a ogni ora, punto per punto (1 mm d'acqua = circa 1 cm di neve, senza fusione)
+function accumula(){const m=MM.m[scalaK];if(m.acc){ACC=m.acc;return}
+ const a=new Float32Array(H*N*N);for(let h=0;h<H;h++){const o=h*N*N,q=(h-1)*N*N;for(let k=0;k<N*N;k++)a[o+k]=(h?a[q+k]:0)+punto(k,h).cm}
+ m.acc=a;ACC=a}
+const SN=[[0.5,[236,240,255]],[2,[205,212,250]],[5,[170,170,240]],[10,[138,127,214]],[20,[110,85,190]],[40,[80,45,150]]];
+function colN(c){if(c<=SN[0][0])return SN[0][1];for(let i=1;i<SN.length;i++)if(c<=SN[i][0]){const a=SN[i-1],b=SN[i],w=(c-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*w,a[1][1]+(b[1][1]-a[1][1])*w,a[1][2]+(b[1][2]-a[1][2])*w]}return SN[SN.length-1][1]}
 const ST=[[-14,[49,54,149]],[-7,[69,117,180]],[-2,[116,173,209]],[0,[205,232,243]],[2,[255,250,200]],[6,[254,217,118]],[11,[253,160,80]],[17,[240,101,60]],[24,[212,45,38]],[32,[150,0,38]]];
 function colT(t){if(t<=ST[0][0])return ST[0][1];for(let i=1;i<ST.length;i++)if(t<=ST[i][0]){const a=ST[i-1],b=ST[i],w=(t-a[0])/(b[0]-a[0]);return[a[1][0]+(b[1][0]-a[1][0])*w,a[1][1]+(b[1][1]-a[1][1])*w,a[1][2]+(b[1][2]-a[1][2])*w]}return ST[ST.length-1][1]}
 const num=(x,n)=>x.toFixed(n||0).replace('.',',').replace('-','\u2212');
-function disegna(){const d=im.data;
+function disegna(){const d=im.data;if(strato==3)accumula();
  for(let k=0;k<N*N;k++){let r=0,g=0,b=0,a=0;
   if(strato){const p=punto(k,ora);
-   if(strato==1){const c=colT(p.T);r=c[0];g=c[1];b=c[2];a=150}
-   else if(strato==2){if(p.nube){r=250;g=250;b=253;a=222}else{r=95;g=102;b=118;a=Math.round(p.low*1.15)}}
-   else if(strato==3){if(p.pr>=0.1){if(p.neve){r=214;g=70;b=150}else{r=36;g=112;b=214}a=Math.min(230,Math.round(70+p.pr*85))}}
+   if(strato==5){const c=colT(p.T);r=c[0];g=c[1];b=c[2];a=150}
+   else if(strato==1){if(p.nube){r=250;g=250;b=253;a=222}else{r=95;g=102;b=118;a=Math.round(p.low*1.15)}}
+   else if(strato==2){if(p.pr>=0.1&&p.tw>0.5){if(p.tw<=1.5){r=120;g=170;b=235}else{r=30;g=100;b=210}a=Math.min(235,Math.round(90+p.pr*90))}}
+   else if(strato==3){const c=ACC[ora*N*N+k];if(c>=0.5){const q=colN(c);r=q[0];g=q[1];b=q[2];a=Math.min(225,Math.round(130+c*6))}}
    else{const v=Math.min(1,p.ws/50);r=98;g=80;b=214;a=Math.round(30+175*v)}}
   d[4*k]=r;d[4*k+1]=g;d[4*k+2]=b;d[4*k+3]=a}
  cx.putImageData(im,0,0);frecce();tempo();info()}
@@ -438,12 +453,14 @@ function tempo(){const t=new Date(C.t0+':00Z');t.setUTCHours(t.getUTCHours()+ora
 function info(){const T=TXT[lang],sg=S.querySelector('.sg');if(sel==null){Q('info').textContent=T.tocca;sg.setAttribute('visibility','hidden');return}
  const p=punto(sel,ora),x=(sel%N+.5)/N*1000,y=(Math.floor(sel/N)+.5)/N*1000;
  sg.setAttribute('visibility','visible');sg.setAttribute('transform','translate('+x.toFixed(0)+' '+y.toFixed(0)+')');
- Q('info').innerHTML='<b>'+p.z+' m · '+num(p.T,1)+' °C</b> · '+T.ur+' '+num(p.ur)+'% · '+(p.mgla?T.nebbia:p.nube?T.in_nube:T.fuori_nube)+'<br>'+T.pioggia+' '+num(p.pr,1)+' mm/h'+(p.pr>=0.1&&p.neve?' ❄':'')+' · '+T.vento+' '+num(p.ws)+' km/h ('+T.raffica+' '+num(p.wg)+')'}
+ Q('info').innerHTML='<b>'+p.z+' m · '+num(p.T,1)+' °C</b> · '+T.ur+' '+num(p.ur)+'% · '+(p.mgla?T.nebbia:p.nube?T.in_nube:T.fuori_nube)+'<br>'+(p.pr>=0.1?(p.tw<=0.5?T.f_neve:(p.tw<=1.5?T.f_mista:T.f_pioggia)):T.pioggia)+' '+num(p.pr,1)+' mm/h'+(ACC?' · '+T.nuova+' '+num(ACC[ora*N*N+sel],0)+' cm':'')+' · '+T.vento+' '+num(p.ws)+' km/h ('+T.raffica+' '+num(p.wg)+')'}
 function testi(){const T=TXT[lang];
- document.querySelectorAll('#strati button').forEach((b,i)=>{b.textContent=T.strati[i];b.setAttribute('aria-pressed',i==strato)});
+ document.querySelectorAll('#strati button').forEach(b=>{const i=+b.dataset.s;b.textContent=T.strati[i];b.setAttribute('aria-pressed',i==strato)});
  document.querySelectorAll('#mw .casa-t').forEach(e=>{e.textContent=MM.casa[lang]+' '+MM.quota+' m'});
- const lg=[T.l_0,T.l_t,T.l_n,T.l_p,T.l_v][strato];let h='';
- if(strato==1){const a=-14,b=24;h='<div class="scala" style="background:linear-gradient(90deg,'+ST.filter(s=>s[0]<=b).map(s=>'rgb('+s[1].join(',')+') '+((s[0]-a)/(b-a)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche"><span>\u221214</span><span>\u22127</span><span>0</span><span>6</span><span>11</span><span>17</span><span>24</span></div>'}
+ let lg=[T.l_0,T.l_n,T.l_p,T.l_s,T.l_v,T.l_t][strato];let h='';
+ if(strato==3){h='<div class="scala" style="background:linear-gradient(90deg,'+SN.map((s,i)=>'rgb('+s[1].join(',')+') '+(i/(SN.length-1)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche">'+SN.map(s=>'<span>'+num(s[0],s[0]<1?1:0)+'</span>').join('')+'</div>';
+  if(MM.suolo!=null)lg+=' · '+T.suolo+': '+MM.suolo+' cm'}
+ if(strato==5){const a=-14,b=24;h='<div class="scala" style="background:linear-gradient(90deg,'+ST.filter(s=>s[0]<=b).map(s=>'rgb('+s[1].join(',')+') '+((s[0]-a)/(b-a)*100).toFixed(0)+'%').join(',')+')"></div><div class="tacche"><span>\u221214</span><span>\u22127</span><span>0</span><span>6</span><span>11</span><span>17</span><span>24</span></div>'}
  Q('leg').innerHTML=h+'<div>'+lg+' · '+T.modello+': '+MM.modello+'</div>';tempo();info()}
 Q('strati').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;strato=+b.dataset.s;testi();disegna()});
 Q('scale').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.k===scalaK)return;carica(b.dataset.k);try{localStorage.setItem('scala',b.dataset.k)}catch(x){}testi();disegna()});
@@ -460,7 +477,11 @@ carica(k0);lingua(lang);disegna();
 def svg_mappa(ris, mappa, lato):
     """Etichette sopra la carta: stazioni vere con la temperatura, paesi, cime, e la casa al centro."""
     p = []
-    presi = [(0.38, 0.415, 0.62, 0.545)]  # riquadri gia' occupati: la casa e la sua scritta
+    presi = [(0.40, 0.46, 0.60, 0.515)]  # riquadri gia' occupati: la casa e la sua scritta
+    fiumi = []
+    for i, fl in enumerate(mappa["base"].get("nomi_fiumi", [])):
+        d = "M" + " L".join(f"{x * 1000:.0f} {y * 1000:.0f}" for x, y in fl["p"])
+        fiumi.append(f'<path id="f{lato}_{i}" d="{d}" fill="none"/><text class="fi" dy="-7"><textPath href="#f{lato}_{i}" startOffset="50%" text-anchor="middle">{e(fl["n"])}</textPath></text>')
     def posto(x, y, testo, largo):
         """Riquadro della scritta, a destra del punto o a sinistra se non ci sta. None se si sovrappone."""
         w = len(testo) * largo + 0.03
@@ -485,29 +506,30 @@ def svg_mappa(ris, mappa, lato):
                 p.append(f'<circle cx="{x * 1000:.0f}" cy="{y * 1000:.0f}" r="4" fill="#33332c"/>'
                          f'<text class="pi" x="{x * 1000 + 12 * v:.0f}" y="{y * 1000 + 7:.0f}" text-anchor="{"start" if v > 0 else "end"}">{e(s["n"])}</text>')
     for c in mappa["base"].get("paesi", []):
-        v = posto(c["x"], c["y"], c["n"], 0.0108)
+        cl = {1: "pi mi", 0: "pi", -1: "pi fr"}.get(c.get("c", 0), "pi")
+        v = posto(c["x"], c["y"], c["n"], 0.017 if c.get("c") == 1 else 0.013)
         if v:
-            p.append(f'<circle cx="{c["x"] * 1000:.0f}" cy="{c["y"] * 1000:.0f}" r="4" fill="#33332c"/>'
-                     f'<text class="pi" x="{c["x"] * 1000 + 12 * v:.0f}" y="{c["y"] * 1000 + 7:.0f}" text-anchor="{"start" if v > 0 else "end"}">{e(c["n"])}</text>')
+            p.append(f'<circle cx="{c["x"] * 1000:.0f}" cy="{c["y"] * 1000:.0f}" r="{5 if c.get("c") == 1 else 4}" fill="none" stroke="#2a2118" stroke-width="2.5"/>'
+                     f'<text class="{cl}" x="{c["x"] * 1000 + 12 * v:.0f}" y="{c["y"] * 1000 + 8:.0f}" text-anchor="{"start" if v > 0 else "end"}">{e(c["n"])}</text>')
     for c in mappa["base"].get("cime", []):
         testo = f'{c["n"]} {c["q"]}'
         v = posto(c["x"], c["y"], testo, 0.0108)
         if v:
             p.append(f'<path d="M{c["x"] * 1000 - 9:.0f} {c["y"] * 1000 + 7:.0f}l9 -15l9 15z" fill="#5a3d1e"/>'
-                     f'<text class="pi" x="{c["x"] * 1000 + 14 * v:.0f}" y="{c["y"] * 1000 + 7:.0f}" text-anchor="{"start" if v > 0 else "end"}">{e(testo)}</text>')
-    casa = ('<g transform="translate(500 500)"><circle r="30" fill="none" stroke="#fffdf5" stroke-width="7"/><circle r="30" fill="none" stroke="#c0392b" stroke-width="3.5"/>'
-            '<path d="M-15 2L0 -13L15 2V15H5V5H-5V15H-15Z" fill="#c0392b" stroke="#fffdf5" stroke-width="2.5" stroke-linejoin="round"/>'
-            '<text class="casa-t" x="0" y="-44" text-anchor="middle"></text></g>')
-    return (f'<svg data-k="{lato}" viewBox="0 0 1000 1000" preserveAspectRatio="none">{"".join(p)}<g class="fr"></g>{casa}'
+                     f'<text class="ci" x="{c["x"] * 1000 + 14 * v:.0f}" y="{c["y"] * 1000 + 7:.0f}" text-anchor="{"start" if v > 0 else "end"}">{e(testo)}</text>')
+    casa = ('<g transform="translate(500 500)"><circle r="9" fill="#c0392b" stroke="#fffdf5" stroke-width="4"/>'
+            '<text class="casa-t" x="0" y="-20" text-anchor="middle"></text></g>')
+    return (f'<svg data-k="{lato}" viewBox="0 0 1000 1000" preserveAspectRatio="none">{"".join(fiumi)}{"".join(p)}<g class="fr"></g>{casa}'
             '<g class="sg" visibility="hidden"><circle r="13" fill="none" stroke="#fffdf5" stroke-width="6"/><circle r="13" fill="none" stroke="#14140f" stroke-width="2.5"/></g></svg>')
 
 
 def blocco_mappa(ris, mappe):
     chiavi = sorted(mappe, key=lambda k: -int(k))
     primo = mappe[chiavi[0]]["campi"]
-    dati = {"casa": CFG["casa"], "quota": round(ris["quota"]), "modello": NOMI_MODELLI.get(primo.get("modello"), primo.get("modello")), "k": chiavi,
+    suolo = next((o.get("suolo_cm") for o in ris["ore"][:3] if o.get("suolo_cm") is not None), None)
+    dati = {"casa": CFG["casa"], "quota": round(ris["quota"]), "suolo": suolo, "modello": NOMI_MODELLI.get(primo.get("modello"), primo.get("modello")), "k": chiavi,
             "m": {k: {"n": m["base"]["n"], "dem": m["base"]["dem"], "c": m["campi"]} for k, m in mappe.items()}}
-    bott = "".join(f'<button type="button" data-s="{i}"></button>' for i in range(5))
+    bott = "".join(f'<button type="button" data-s="{i}"></button>' for i in range(6))
     scale = "".join(f'<button type="button" data-k="{k}">{k} × {k} km</button>' for k in chiavi)
     strati_img = "".join(f'<img data-k="{k}" alt="" src="data:image/jpeg;base64,{mappe[k]["jpg"]}">' for k in chiavi)
     etichette = "".join(svg_mappa(ris, mappe[k], k) for k in chiavi)
@@ -520,6 +542,23 @@ def blocco_mappa(ris, mappe):
     return html_, js
 
 
+def fonti():
+    """EB Garamond (SIL Open Font License) incorporato: le scritte della carta non dipendono dalla rete."""
+    import base64, os
+    cart = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonti")
+    gamme = {"latin": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212",
+             "latin-ext": "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2C60-2C7F,U+A720-A7FF"}
+    out = ""
+    for sub, gamma in gamme.items():
+        for stile in ("normal", "italic"):
+            f = os.path.join(cart, f"eb-garamond-{sub}-500-{stile}.woff2")
+            if os.path.exists(f):
+                b = base64.b64encode(open(f, "rb").read()).decode()
+                out += (f"@font-face{{font-family:'Garamond Stara';font-style:{stile};font-weight:500;font-display:swap;"
+                        f"src:url(data:font/woff2;base64,{b}) format('woff2');unicode-range:{gamma}}}")
+    return out
+
+
 def pagina(ris, mappa=None):
     mappa = {k: m for k, m in (mappa or {}).items() if m.get("base") and m.get("campi") and m.get("jpg")} or None
     corpi = "".join(corpo(ris, l, mappa) for l in ("pl", "it"))
@@ -529,7 +568,7 @@ def pagina(ris, mappa=None):
         mh, js = "", JS_MAPPA.replace("__DATI__", "null").replace("__TXT__", json.dumps(JS, ensure_ascii=False))
     return f"""<!DOCTYPE html>
 <html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>{e(CFG['titolo']['pl'])}</title><style>{CSS}{CSS_MAPPA}</style></head><body data-l="pl"><main>
+<meta name="robots" content="noindex,nofollow"><title>{e(CFG['titolo']['pl'])}</title><style>{fonti() if mappa else ''}{CSS}{CSS_MAPPA}</style></head><body data-l="pl"><main>
 <div class="lsw"><button type="button" data-l="pl" aria-pressed="true">PL</button><button type="button" data-l="it" aria-pressed="false">IT</button></div>
 {corpi}
 <div hidden>{mh}</div>

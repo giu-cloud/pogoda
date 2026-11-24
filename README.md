@@ -15,3 +15,4 @@ Le coordinate stanno solo nei Secrets del deposito.
 - Rilievo: Copernicus DEM GLO-30 © DLR e Airbus, fornito nell'ambito del programma Copernicus.
 - Uso del suolo: ESA WorldCover 2021 (CC BY 4.0).
 - Fiumi, strade, località: © OpenStreetMap contributors (ODbL).
+- Carattere delle scritte della carta: EB Garamond (SIL Open Font License 1.1, testo in `previsione/fonti/OFL.txt`).
