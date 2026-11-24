@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: github-pages
-      url: ${{ steps.pubblica.outputs.page_url }}
+      url: https://giu-cloud.github.io/pogoda/
     env:
       CASA_LAT: ${{ secrets.CASA_LAT }}
       CASA_LON: ${{ secrets.CASA_LON }}
@@ -56,6 +56,13 @@ jobs:
           path: _site
       - name: pubblica
         id: pubblica
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
+      - name: attesa prima di riprovare
+        if: steps.pubblica.outcome == 'failure'
+        run: sleep 90
+      - name: pubblica, secondo tentativo
+        if: steps.pubblica.outcome == 'failure'
         uses: actions/deploy-pages@v4
       - name: esito
         run: exit $fallito
