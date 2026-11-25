@@ -36,6 +36,11 @@ RILIEVO = float(os.environ.get("LENS_RILIEVO") or 0.0)
 RIDOSSO = float(os.environ.get("LENS_RIDOSSO") or 0.2)
 RIDOSSO_S = float(os.environ.get("LENS_RIDOSSO_S") or 1.0)
 COSTA = float(os.environ.get("LENS_COSTA") or 0.0)
+# Lens 0.56 (Giano, 25/11): la direzione del rilievo pieno con la forza della 0.54. Il radar non misura la direzione; le
+# stazioni sulla costa (Messina, Reggio, Mentone, Cap Corse) dicono che la rotazione del rilievo la migliora di 7-13°
+# (giu-cloud/lens, banco/risultati/cfd_25_11.md). La rotazione si applica alla fine, quindi forza e raffica non cambiano.
+# 0 = come la 0.54, 1 = tutta (come LensAtlas.TERRAIN_DIR_WEIGHT del motore di Shift).
+DIR_RIL = float(os.environ.get("LENS_DIR_RILIEVO") or 1.0)
 ID = "".join(c for c in (os.environ.get("LENS_ID") or "") if c.isalnum() or c in "-_")[:80]
 os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
 os.environ.setdefault("AWS_NO_SIGN_REQUEST", "YES")
@@ -671,11 +676,16 @@ def main():
         us, vs = al_suolo(u, v, aria, h, zc, z0)
         del u, v, w, aria
         us, vs = gaussian_filter(us, 1.0), gaussian_filter(vs, 1.0)   # toglie il rumore da gradino della griglia a scalini
+        giro = None
         if RILIEVO != 1.0:
             # Sul mare il peso del rilievo e' quello di Lens 0.54 (tarato sul radar, e la correzione del radar va sopra
             # questo); a terra, dove il radar non misura, resta il rilievo pieno, che si vede nel flusso.
             wr = np.where(mare, RILIEVO, 1.0)
+            uf, vf = us, vs                                            # il rilievo pieno
             us, vs = u10 + (us - u10) * wr, v10 + (vs - v10) * wr
+            if DIR_RIL > 0:                                            # 0.56: la sua direzione, applicata alla fine
+                giro = DIR_RIL * ((np.arctan2(uf, vf) - np.arctan2(us, vs) + np.pi) % (2 * np.pi) - np.pi)
+            del uf, vf
         fatt, sx = scia(h, us, vs, A.dx, fr_b, profondita=RIDOSSO, s_max=RIDOSSO_S)
         c_ibl = 0.9 if fr_b >= 1.0 else (0.6 if fr_b >= 0.5 else 0.35)
         fcosta, _, rec, z0l = costa(mare, z0, us, vs, A.dx, c=c_ibl)
@@ -701,6 +711,9 @@ def main():
             g2, info2 = campo_radar(lib2, uc, vc, u925, v925, int(tempi[i][11:13]), lat_f, lon_f)
             g2 = np.where(mare, g2, 1.0)
             us, vs = us * g2, vs * g2
+        if giro is not None:                                           # la direzione del rilievo pieno, forza invariata
+            cg, sg = np.cos(giro), np.sin(giro)
+            us, vs = us * cg + vs * sg, -us * sg + vs * cg
         vel = np.hypot(us, vs)
         # raffiche: fattore di picco dal modello stesso, sul mare aperto
         gm = np.where(mare, fine(M["g"][:, :, i]), fine(M["gt"][:, :, i]))
