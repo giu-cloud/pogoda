@@ -44,17 +44,21 @@ JS = r"""
 const D=__DATI__,Q=id=>document.getElementById(id);
 function dec(b){const s=atob(b),a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i);return a}
 let P;
-try{P=JSON.parse(await new Response(new Blob([dec(D.gz)]).stream().pipeThrough(new DecompressionStream('gzip'))).text())}
+let BIN;
+try{P=JSON.parse(await new Response(new Blob([dec(D.gz)]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+ BIN=new Uint8Array(await new Response(new Blob([dec(D.bin)]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer())}
 catch(e){Q('info').innerHTML='<p class="vuoto">Questo browser è troppo vecchio per aprire la carta: aggiornalo e riprova.</p>';return}
-const ORE=P.ore,nx=D.nx,ny=D.ny,KB=D.kb,N=nx*ny;
+const ORE=P.ore,nx=D.nx,ny=D.ny,KB=D.kb,N=nx*ny,NH=ORE.length;
+// i campi sono differenze ora per ora (forza e raffica in mezzi nodi, direzione in 128 passi): qui si risommano
+{let acc=new Uint8Array(N);for(let f=0;f<3;f++){acc.fill(0);for(let n=0;n<NH;n++){const o=(f*NH+n)*N;for(let k=0;k<N;k++){acc[k]=(acc[k]+BIN[o+k])&255;BIN[o+k]=acc[k]}}}}
 const MAR=new Uint8Array(N);{const m=dec(P.mare);for(let k=0;k<N;k++)MAR[k]=(m[k>>3]>>(7-(k&7)))&1}
 // valore di un campo del modello (griglia grossa su tutto il dominio) nel punto i,j della carta, bilineare
 function bl(a,i,j){const gx=(i+D.m+.5)/D.NX*(D.gx-1),gy=(j+D.m+.5)/D.NY*(D.gy-1),x0=Math.min(D.gx-2,Math.floor(gx)),y0=Math.min(D.gy-2,Math.floor(gy)),wx=gx-x0,wy=gy-y0,q=y0*D.gx+x0;
  return(a[q]*(1-wx)+a[q+1]*wx)*(1-wy)+(a[q+D.gx]*(1-wx)+a[q+D.gx+1]*wx)*wy}
 function ora(n){const o=ORE[n];if(o.S)return o;
- const V=dec(o.v),Dd=dec(o.d),G=o.g?dec(o.g):V;
+ const V=BIN.subarray(n*N,n*N+N),G=BIN.subarray((NH+n)*N,(NH+n)*N+N),Dd=BIN.subarray((2*NH+n)*N,(2*NH+n)*N+N);
  o.S=new Float32Array(N);o.G=new Float32Array(N);o.U=new Float32Array(N);o.W=new Float32Array(N);
- for(let k=0;k<N;k++){const s=V[k]/4,a=Dd[k]*Math.PI/128;o.S[k]=s;o.G[k]=G[k]/4;o.U[k]=-s*Math.sin(a);o.W[k]=-s*Math.cos(a)}
+ for(let k=0;k<N;k++){const s=V[k]/2,a=Dd[k]*Math.PI/64;o.S[k]=s;o.G[k]=G[k]/2;o.U[k]=-s*Math.sin(a);o.W[k]=-s*Math.cos(a)}
  return o}
 // scala del vento in nodi (come in Shift) e forza Beaufort
 const WS=[[0,[150,190,228]],[5,[76,175,80]],[10,[192,202,51]],[15,[255,179,0]],[20,[255,112,67]],[25,[229,57,53]],[32,[142,36,170]],[40,[90,20,110]]];

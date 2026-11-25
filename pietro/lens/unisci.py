@@ -69,8 +69,25 @@ def main():
     else:
         print("un solo calcolo:", d.get("nome_modello"))
     P = d.pop("_P")
+    # i campi grandi in un solo blocco binario compresso (il base64 dentro il JSON si comprime male):
+    # per ogni ora, forza, raffica e direzione, un byte per cella ciascuna
+    # Codifica: forza e raffica in mezzi nodi, direzione in 128 passi (2,8 gradi); per ogni campo tutte le ore di fila,
+    # ognuna come differenza dall'ora prima (modulo 256), che si comprime molto meglio. La pagina rifa' le somme.
+    n = d["nx"] * d["ny"]
+    campi_ = {"v": [], "g": [], "d": []}
     for o in P["ore"]:
-        o.pop("mv", None); o.pop("md", None)
+        for k in ("v", "g", "d"):
+            a = np.frombuffer(base64.b64decode(o.pop(k)), np.uint8)[:n].astype(np.int64)
+            campi_[k].append(np.round(a / 2).astype(np.int64) % (128 if k == "d" else 256))
+        for k in ("mv", "md", "r"):
+            o.pop(k, None)
+    P.pop("quota", None)
+    blocchi = []
+    for k in ("v", "g", "d"):
+        a = np.stack(campi_[k])
+        blocchi.append((np.diff(np.concatenate([np.zeros((1, n), np.int64), a]), axis=0) % 256).astype(np.uint8).ravel())
+    d["bin"] = base64.b64encode(gzip.compress(np.concatenate(blocchi).tobytes(), 9)).decode()
+    d["cod"] = "delta-2"
     d["gz"] = base64.b64encode(gzip.compress(json.dumps(P, separators=(",", ":")).encode(), 9)).decode()
     for x in (e, i):
         if x:
