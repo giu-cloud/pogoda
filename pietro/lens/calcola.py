@@ -49,7 +49,7 @@ PALERMO = {"area": (37.945, 38.287, 13.108, 13.612), "nome": "Pietro", "casa": (
 MAX_COLONNE = 100000         # colonne di calcolo che stanno nei 7 GB della macchina di GitHub (misurato: 6 milioni di celle, 4,8 GB)
 RISOLUZIONE_KM = {"ecmwf_ifs025": 25.0, "italia_meteo_arpae_icon_2i": 2.2, "meteofrance_arome_france": 1.3, "meteofrance_arome_france_hd": 1.5,
                   "icon_eu": 7.0, "icon_d2": 2.2, "ecmwf_ifs": 9.0, "ecmwf_ifs025": 25.0, "gfs_global": 13.0, "arpege_europe": 11.0}
-NOMI_MODELLI = {"youmeteo": "youmeteo a 5,5 km", "italia_meteo_arpae_icon_2i": "ICON-2I a 2,2 km", "icon_eu": "ICON-EU a 7 km", "ecmwf_ifs": "ECMWF a 9 km",
+NOMI_MODELLI = {"youmeteo": "youmeteo a 5,5 km", "ecmwf_ifs025": "ECMWF a 25 km", "italia_meteo_arpae_icon_2i": "ICON-2I a 2,2 km", "icon_eu": "ICON-EU a 7 km", "ecmwf_ifs": "ECMWF a 9 km",
                 "gfs_global": "GFS a 13 km", "arpege_europe": "ARPEGE a 11 km", "meteofrance_arome_france": "AROME a 1,3 km"}
 LIVELLI_P = [1000, 975, 950, 925, 900, 850, 800, 700]
 PRIORITA = {"city": 0, "town": 1, "cape": 2, "village": 3, "suburb": 4, "quarter": 4}
