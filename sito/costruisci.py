@@ -78,6 +78,25 @@ def main():
         fatte += 1
     open(os.path.join(SITO, "index.html"), "w", encoding="utf-8").write(
         '<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>pogoda</title>')
+    # Pietro: la pagina la calcola il lavoro "pietro" e la lascia nella release "pietro"; qui si prende l'ultima
+    try:
+        import urllib.request
+        dest = os.path.join(SITO, "pietro")
+        os.makedirs(dest, exist_ok=True)
+        req = urllib.request.Request("https://github.com/giu-cloud/pogoda/releases/download/pietro/pietro.html",
+                                     headers={"User-Agent": "pogoda"})
+        open(os.path.join(dest, "index.html"), "wb").write(urllib.request.urlopen(req, timeout=60).read())
+        for f in os.listdir(os.path.join(QUI, "pietro")):
+            shutil.copy(os.path.join(QUI, "pietro", f), dest)
+        json.dump({"name": "Pietro", "short_name": "Pietro", "start_url": "./", "scope": "./", "display": "standalone",
+                   "background_color": "#f2f1ec", "theme_color": "#1f5fa8",
+                   "icons": [{"src": "icona_192.png", "sizes": "192x192", "type": "image/png"},
+                             {"src": "icona_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]},
+                  open(os.path.join(dest, "manifest.webmanifest"), "w"))
+        print("pietro: pagina presa dalla release")
+    except Exception as e:
+        print("pietro: pagina non disponibile:", e)
+        shutil.rmtree(os.path.join(SITO, "pietro"), ignore_errors=True)
     # il primo indirizzo della seconda casa porta a quello nuovo
     os.makedirs(os.path.join(SITO, "feodor"), exist_ok=True)
     open(os.path.join(SITO, "feodor", "index.html"), "w", encoding="utf-8").write(

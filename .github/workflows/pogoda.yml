@@ -5,6 +5,10 @@ on:
   schedule:
     - cron: "17 2-23/3 * * *"
   workflow_dispatch:
+    inputs:
+      forza:
+        description: "1 = rilegge i modelli; 0 = rifa solo le pagine (lo usa il lavoro di Pietro)"
+        default: "1"
   push:
     branches: [main]
     paths: ["previsione/**.py", "archivio/**.py", "comune/**.py", "mappa/campi.py", "sito/**", ".github/workflows/pogoda.yml"]
@@ -27,7 +31,7 @@ jobs:
       FIODOR_LAT: ${{ secrets.FIODOR_LAT }}
       FIODOR_LON: ${{ secrets.FIODOR_LON }}
       FIODOR_QUOTA: ${{ secrets.FIODOR_QUOTA }}
-      FORZA_PREVISIONI: ${{ github.event_name != 'schedule' && '1' || '0' }}
+      FORZA_PREVISIONI: ${{ github.event_name == 'schedule' && '0' || (github.event.inputs.forza || '1') }}
     steps:
       - uses: actions/checkout@v4
       - name: giro di tutte le case
