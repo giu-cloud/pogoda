@@ -72,7 +72,7 @@ const ROSA=['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','
 const NOMI=['tramontana','grecale','levante','scirocco','ostro','libeccio','ponente','maestrale'];
 const rosa=d=>ROSA[Math.round(d/22.5)%16],nome=d=>NOMI[Math.round(d/45)%8];
 const VISTE=Object.keys(D.viste);
-let h=0,strato='vento',vista=VISTE.includes('Due golfi')?'Due golfi':VISTE[0],sel=null,giro=null,flusso=null;
+let h=0,strato='vento',vista=VISTE[0],sel=null,giro=null,flusso=null;
 const cv=Q('c'),cx=cv.getContext('2d'),pc=Q('p'),px=pc.getContext('2d'),img=new Image(),off=document.createElement('canvas');
 const casa=D.casa?[(D.casa[1]-D.interno[2])/(D.interno[3]-D.interno[2])*nx,(D.interno[1]-D.casa[0])/(D.interno[1]-D.interno[0])*ny]:null;
 function pioggia(o,i,j){return o.pr?Math.max(0,bl(o.pr,i,j)):0}
@@ -104,7 +104,14 @@ function disegna(){const v=D.viste[vista],x0=v[0],y0=v[1],sw=v[2],sh=v[3],o=ora(
   cx.font='italic 500 '+(15*dpr)+"px 'Garamond Stara',Georgia,serif";cx.textBaseline='middle';cx.lineWidth=3.5*dpr;cx.strokeStyle='rgba(255,253,245,.95)';
   cx.strokeText("Pietro's Place",X+9*dpr,Y-1*dpr);cx.fillStyle='#7d1f16';cx.fillText("Pietro's Place",X+9*dpr,Y-1*dpr)}}
  if(sel!=null){const si=sel%nx-x0,sj=Math.floor(sel/nx)-y0;if(si>=0&&sj>=0&&si<sw&&sj<sh){const X=(si+.5)*pxs,Y=(sj+.5)*pxs;
-  cx.lineWidth=4*dpr;cx.strokeStyle='#fffdf5';cx.beginPath();cx.arc(X,Y,9*dpr,0,7);cx.stroke();cx.lineWidth=2*dpr;cx.strokeStyle='#14171c';cx.stroke()}}
+  cx.lineWidth=4*dpr;cx.strokeStyle='#fffdf5';cx.beginPath();cx.arc(X,Y,9*dpr,0,7);cx.stroke();cx.lineWidth=2*dpr;cx.strokeStyle='#14171c';cx.stroke();
+  // accanto al cerchietto, in alto a destra: direzione in gradi e forza (o raffica) in nodi
+  const u=o.U[sel],w=o.W[sel],dd=Math.round((Math.atan2(-u,-w)*180/Math.PI+360)%360),kn=strato==='raff'?o.G[sel]:o.S[sel];
+  const t=String(dd).padStart(3,'0')+'° · '+num(kn,0)+' kn';cx.font='700 '+(15*dpr)+'px system-ui,sans-serif';cx.textBaseline='middle';
+  const tw=cx.measureText(t).width,bw=tw+14*dpr,bh=26*dpr;let bx=X+12*dpr,by=Y-12*dpr-bh;
+  if(bx+bw>W-4*dpr)bx=X-12*dpr-bw;if(by<4*dpr)by=Y+12*dpr;
+  cx.fillStyle='rgba(20,23,28,.88)';cx.beginPath();if(cx.roundRect)cx.roundRect(bx,by,bw,bh,7*dpr);else cx.rect(bx,by,bw,bh);cx.fill();
+  cx.fillStyle='#fff';cx.fillText(t,bx+7*dpr,by+bh/2+0.5*dpr)}}
  scalaGrafica(v);testi();aggiornaFlusso()}
 // scie del vento: particelle che seguono il vento calcolato, sopra la carta
 let part=[],anim=null;
@@ -188,7 +195,7 @@ def pagina(dati, base, mime="image/webp"):
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" href="icona_192.png"><link rel="apple-touch-icon" href="icona_180.png">
 <meta name="theme-color" content="#1f5fa8"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Pietro">
 <style>{fonti()}{CSS}</style></head><body><main>
-<header><h1>Pietro</h1><p class="motto">«Mi piace la forma della vela»</p>
+<header><h1>Pietro</h1><p class="motto">«Ai laic de sceip ov de seil»</p>
 <p class="agg">Vento sui golfi di Palermo e Mondello · aggiornato {gen:%d/%m alle %H:%M}</p><p class="agg" id="vecchio" style="color:#9a5b00;font-weight:600"></p></header>
 <div class="card">
 <div class="riga" id="viste"></div>

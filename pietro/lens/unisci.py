@@ -68,6 +68,9 @@ def main():
             print("nessuna ora in comune: solo ICON-2I")
     else:
         print("un solo calcolo:", d.get("nome_modello"))
+    # viste: niente "Tutto", Pietro's Place per prima (Giano, 25/11)
+    ordine = ["Pietro's Place", "Due golfi", "Mondello", "Golfo di Palermo"]
+    d["viste"] = {k: d["viste"][k] for k in ordine if k in d["viste"]} or d["viste"]
     P = d.pop("_P")
     # i campi grandi in un solo blocco binario compresso (il base64 dentro il JSON si comprime male):
     # per ogni ora, forza, raffica e direzione, un byte per cella ciascuna
