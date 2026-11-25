@@ -32,10 +32,14 @@ QUI = os.path.dirname(__file__)
 PAGINA = os.environ.get("LENS_PAGINA") == "1"
 # 0.54: il radar dei Sentinel-1 (10 aree, 2024-26) non vede in media né la frenata del rilievo né il ridosso lungo di
 # Lens; restano più leggeri, come nell'app (LensAtlas: shift.lens.terrain, wake, sfacMax, coast).
-RILIEVO = float(os.environ.get("LENS_RILIEVO") or 0.0)
-RIDOSSO = float(os.environ.get("LENS_RIDOSSO") or 0.2)
-RIDOSSO_S = float(os.environ.get("LENS_RIDOSSO_S") or 1.0)
-COSTA = float(os.environ.get("LENS_COSTA") or 0.0)
+# Lens 0.57 (Giano, 25/11 sera): torna la forza del primo Lens (rilievo 1, ridosso 0,65, allungamento 3, costa 1), a
+# 100 m. LENS_FORZA e' la manopola (1 = primo Lens, 0 = la 0.54), come LensAtlas.RELIEF del motore di Shift. Lens 2 sopra
+# diventa relativo a Lens (radar.relativo_a_lens), per non contare due volte le ombre che il radar vede.
+FORZA = min(1.0, max(0.0, float(os.environ.get("LENS_FORZA") or 1.0)))
+RILIEVO = float(os.environ.get("LENS_RILIEVO") or FORZA)
+RIDOSSO = float(os.environ.get("LENS_RIDOSSO") or (0.2 + 0.45 * FORZA))
+RIDOSSO_S = float(os.environ.get("LENS_RIDOSSO_S") or (1.0 + 2.0 * FORZA))
+COSTA = float(os.environ.get("LENS_COSTA") or FORZA)
 # Lens 0.56 (Giano, 25/11): la direzione del rilievo pieno con la forza della 0.54. Il radar non misura la direzione; le
 # stazioni sulla costa (Messina, Reggio, Mentone, Cap Corse) dicono che la rotazione del rilievo la migliora di 7-13°
 # (giu-cloud/lens, banco/risultati/cfd_25_11.md). La rotazione si applica alla fine, quindi forza e raffica non cambiano.
@@ -708,7 +712,9 @@ def main():
                 u925, v925 = float(np.nanmean(u9)), float(np.nanmean(v9))
             else:
                 u925, v925 = float(np.mean(uc)), float(np.mean(vc))
-            g2, info2 = campo_radar(lib2, uc, vc, u925, v925, int(tempi[i][11:13]), lat_f, lon_f)
+            # 0.57: con il rilievo sotto, il fattore del radar si rende relativo a Lens (niente ombre contate due volte)
+            rel = (np.hypot(us, vs), mare) if RILIEVO > 0 else None
+            g2, info2 = campo_radar(lib2, uc, vc, u925, v925, int(tempi[i][11:13]), lat_f, lon_f, lens=rel)
             g2 = np.where(mare, g2, 1.0)
             us, vs = us * g2, vs * g2
         if giro is not None:                                           # la direzione del rilievo pieno, forza invariata

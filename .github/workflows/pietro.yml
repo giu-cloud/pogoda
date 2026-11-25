@@ -16,7 +16,7 @@ concurrency: pietro
 jobs:
   lens:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -39,6 +39,7 @@ jobs:
           LENS_MODELLO: ${{ matrix.modello }}
           LENS2_LIB: librerie/lib.lra
           LENS_SALVA: ${{ matrix.nome }}.json
+          LENS_DX: "100"          # Lens 0.57 (Giano, 25/11): il primo Lens su griglia fine, 100 m
         run: python3 pietro/lens/calcola.py
       - uses: actions/upload-artifact@v4
         with: {name: "${{ matrix.nome }}", path: "${{ matrix.nome }}.json", retention-days: 1}

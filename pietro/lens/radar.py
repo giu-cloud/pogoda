@@ -62,9 +62,27 @@ def provenienza(u, v):
     return (np.degrees(np.arctan2(-u, -v)) + 360) % 360
 
 
-def campo(lib, u_celle, v_celle, u925, v925, ora_utc, lat_fine, lon_fine):
+def relativo_a_lens(lib, G, sp_celle, vel_fine, mare_fine, lat_fine, lon_fine):
+    """Lens 0.57 (Giano, 25/11): Lens sotto ha il rilievo pieno, e la libreria e' imparata sul modello senza rilievo, quindi
+    il suo fattore conterebbe due volte le ombre e i getti che il radar vede. Ogni cella si divide per quanto Lens, in
+    media sulla cella, ha gia' cambiato il vento del modello: g' = g / (media di Lens nella cella / modello nella cella).
+    Sulla cella del radar Lens corretto torna in media al radar; dentro resta il disegno fine di Lens. Come
+    LensRadar.relativoALens del motore di Shift."""
+    LA, LO = np.meshgrid(lat_fine, lon_fine, indexing="ij")
+    jj = np.rint((LA - lib.lat0) / lib.dlat).astype(int); ii = np.rint((LO - lib.lon0) / lib.dlon).astype(int)
+    ok = mare_fine & np.isfinite(vel_fine) & (jj >= 0) & (jj < lib.ny) & (ii >= 0) & (ii < lib.nx)
+    k = (jj * lib.nx + ii)[ok]
+    s = np.bincount(k, vel_fine[ok], minlength=lib.ny * lib.nx); n = np.bincount(k, minlength=lib.ny * lib.nx)
+    media = np.where(n[lib.celle] >= 5, s[lib.celle] / np.maximum(n[lib.celle], 1), np.nan)
+    r = media / np.where(sp_celle > 0.5, sp_celle, np.nan)
+    G2 = np.where(np.isfinite(r) & (r > 0.05), G / np.where(np.isfinite(r) & (r > 0.05), r, 1.0), G)
+    return np.clip(G2, 0.5, 2.0)
+
+
+def campo(lib, u_celle, v_celle, u925, v925, ora_utc, lat_fine, lon_fine, lens=None):
     """Fattore sulla griglia fine (ny, nx) per un'ora. u_celle, v_celle: vento del modello (m/s, verso est e nord) nei
-    centri delle celle della libreria, letto dai punti di mare; u925, v925: vento medio a 925 hPa sull'area."""
+    centri delle celle della libreria, letto dai punti di mare; u925, v925: vento medio a 925 hPa sull'area.
+    lens: (forza di Lens sulla griglia fine, maschera del mare) per rendere il fattore relativo a Lens (0.57)."""
     sp = np.hypot(u_celle, v_celle)
     largo = lib.dist >= LARGO_KM
     if largo.sum() < 20:
@@ -75,6 +93,8 @@ def campo(lib, u_celle, v_celle, u925, v925, ora_utc, lat_fine, lon_fine):
     G = lib.fattore(S0 * np.sin(D0), S0 * np.cos(D0), s925 * np.sin(d925), s925 * np.cos(d925),
                     1.0 if ora_utc >= 12 else 0.0, provenienza(u_celle, v_celle))
     G = np.clip(np.nan_to_num(G, nan=1.0), 0.5, 2.0)
+    if lens is not None:
+        G = relativo_a_lens(lib, G, sp, lens[0], lens[1], lat_fine, lon_fine)
     # sulla griglia fine: celle da 1 km piene (1 dove non c'e' cella), poi bilineare
     piena = np.ones(lib.ny * lib.nx, "f8"); piena[lib.celle] = G; piena = piena.reshape(lib.ny, lib.nx)
     from scipy.ndimage import map_coordinates
