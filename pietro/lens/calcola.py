@@ -712,8 +712,8 @@ def main():
                 u925, v925 = float(np.nanmean(u9)), float(np.nanmean(v9))
             else:
                 u925, v925 = float(np.mean(uc)), float(np.mean(vc))
-            # 0.57: con il rilievo sotto, il fattore del radar si rende relativo a Lens (niente ombre contate due volte)
-            rel = (np.hypot(us, vs), mare) if RILIEVO > 0 else None
+            # 0.58 (Giano, 26/11): con il rilievo sotto, il radar fissa solo il livello a grande scala (30 km), il disegno resta di Lens
+            rel = (np.hypot(us, vs), mare, s10) if RILIEVO > 0 else None
             g2, info2 = campo_radar(lib2, uc, vc, u925, v925, int(tempi[i][11:13]), lat_f, lon_f, lens=rel)
             g2 = np.where(mare, g2, 1.0)
             us, vs = us * g2, vs * g2

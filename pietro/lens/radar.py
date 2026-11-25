@@ -79,6 +79,37 @@ def relativo_a_lens(lib, G, sp_celle, vel_fine, mare_fine, lat_fine, lon_fine):
     return np.clip(G2, 0.5, 2.0)
 
 
+def livello(lib, G, vel_fine, mod_fine, mare_fine, lat_fine, lon_fine, scala_km=30.0):
+    """0.58 (Giano, 26/11): il radar fissa solo il livello del vento oltre scala_km; sotto resta tutto il disegno di Lens,
+    come la terza colonna. Fattore = exp(liscio(log g)) / liscio(Lens / modello), media gaussiana con sigma scala_km / 2
+    sulla griglia della libreria, tra 0,5 e 2. Misurato sul radar in dieci aree: rispetto al primo Lens da solo gli
+    errori migliorano o restano uguali dappertutto, e resta in mediana il 95% del disegno di Lens sopra il km (il
+    relativo cella per cella ne lasciava il 12%). Come LensLivello del motore di Shift."""
+    from scipy.ndimage import gaussian_filter, map_coordinates
+    ny, nx = lib.ny, lib.nx
+    LA, LO = np.meshgrid(lat_fine, lon_fine, indexing="ij")
+    jf = (LA - lib.lat0) / lib.dlat; if_ = (LO - lib.lon0) / lib.dlon
+    jj = np.rint(jf).astype(int); ii = np.rint(if_).astype(int)
+    dentro = (jj >= 0) & (jj < ny) & (ii >= 0) & (ii < nx)
+    ok = dentro & mare_fine & np.isfinite(vel_fine) & np.isfinite(mod_fine)
+    k = (jj * nx + ii)[ok]; kt = (jj * nx + ii)[dentro]
+    sl = np.bincount(k, vel_fine[ok], minlength=ny * nx); sm = np.bincount(k, mod_fine[ok], minlength=ny * nx)
+    n = np.bincount(k, minlength=ny * nx); nt = np.bincount(kt, minlength=ny * nx)
+    buono = (n >= 5) & (n >= 0.5 * np.maximum(nt, 1)) & (sm > 0.5 * np.maximum(n, 1))
+    R = np.where(buono, sl / np.where(buono, sm, 1.0), 0.0).reshape(ny, nx); mR = buono.reshape(ny, nx).astype(float)
+    lg = np.zeros(ny * nx); mg = np.zeros(ny * nx)
+    okg = np.isfinite(G) & (G > 0)
+    lg[lib.celle[okg]] = np.log(G[okg]); mg[lib.celle[okg]] = 1.0
+    lg, mg = lg.reshape(ny, nx), mg.reshape(ny, nx)
+    sig = scala_km / 2.0 / (lib.dlat * 111.19)
+    lgS, mgS = gaussian_filter(lg, sig), gaussian_filter(mg, sig)
+    rS, mRS = gaussian_filter(R, sig), gaussian_filter(mR, sig)
+    gg = np.where(mgS > 1e-6, np.exp(lgS / np.maximum(mgS, 1e-6)), 1.0)
+    rr = np.where(mRS > 1e-6, rS / np.maximum(mRS, 1e-6), 1.0)
+    F = np.where(rr > 0.05, np.clip(gg / np.maximum(rr, 0.05), 0.5, 2.0), 1.0)
+    return map_coordinates(F, [np.clip(jf, 0, ny - 1), np.clip(if_, 0, nx - 1)], order=1, mode="nearest")
+
+
 def campo(lib, u_celle, v_celle, u925, v925, ora_utc, lat_fine, lon_fine, lens=None):
     """Fattore sulla griglia fine (ny, nx) per un'ora. u_celle, v_celle: vento del modello (m/s, verso est e nord) nei
     centri delle celle della libreria, letto dai punti di mare; u925, v925: vento medio a 925 hPa sull'area.
@@ -93,6 +124,11 @@ def campo(lib, u_celle, v_celle, u925, v925, ora_utc, lat_fine, lon_fine, lens=N
     G = lib.fattore(S0 * np.sin(D0), S0 * np.cos(D0), s925 * np.sin(d925), s925 * np.cos(d925),
                     1.0 if ora_utc >= 12 else 0.0, provenienza(u_celle, v_celle))
     G = np.clip(np.nan_to_num(G, nan=1.0), 0.5, 2.0)
+    info = {"S0": round(S0, 1), "G": [round(float(np.percentile(G, 5)), 2), round(float(np.median(G)), 2), round(float(np.percentile(G, 95)), 2)]}
+    if lens is not None and len(lens) == 3:                    # 0.58: solo il livello a grande scala
+        f = livello(lib, G, lens[0], lens[2], lens[1], lat_fine, lon_fine)
+        info["livello"] = [round(float(np.min(f)), 2), round(float(np.max(f)), 2)]
+        return f, info
     if lens is not None:
         G = relativo_a_lens(lib, G, sp, lens[0], lens[1], lat_fine, lon_fine)
     # sulla griglia fine: celle da 1 km piene (1 dove non c'e' cella), poi bilineare
