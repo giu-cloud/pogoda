@@ -672,9 +672,9 @@ def main():
         del u, v, w, aria
         us, vs = gaussian_filter(us, 1.0), gaussian_filter(vs, 1.0)   # toglie il rumore da gradino della griglia a scalini
         if RILIEVO != 1.0:
-            # Sul mare il peso del rilievo e' quello di Lens 0.54 (tarato sul radar); a terra, dove il radar non misura,
-            # resta il rilievo pieno, che si vede nel flusso. Passaggio in 1 km dalla costa.
-            wr = RILIEVO + (1.0 - RILIEVO) * np.clip(1.0 - dist_mare / 1000.0, 0.0, 1.0)
+            # Sul mare il peso del rilievo e' quello di Lens 0.54 (tarato sul radar, e la correzione del radar va sopra
+            # questo); a terra, dove il radar non misura, resta il rilievo pieno, che si vede nel flusso.
+            wr = np.where(mare, RILIEVO, 1.0)
             us, vs = u10 + (us - u10) * wr, v10 + (vs - v10) * wr
         fatt, sx = scia(h, us, vs, A.dx, fr_b, profondita=RIDOSSO, s_max=RIDOSSO_S)
         c_ibl = 0.9 if fr_b >= 1.0 else (0.6 if fr_b >= 0.5 else 0.35)
