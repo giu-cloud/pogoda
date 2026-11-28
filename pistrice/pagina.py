@@ -34,6 +34,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#cfe3ec;font:15px/1.4 
 .brand{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;z-index:800;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:14px;padding:5px 10px 5px 6px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand img{height:30px;display:block}
 .brand b{display:block;font-family:'Garamond Stara',Georgia,serif;font-weight:500;font-size:15px;line-height:1.05;letter-spacing:.3px}
+.brand em{display:block;font-size:10px;line-height:1.25;color:#55585e;font-family:'Garamond Stara',Georgia,serif}.brand em.cr{font-style:normal;font-family:inherit;font-size:9px;color:#8a8d93;letter-spacing:.3px}
 .brand small{display:block;font-size:10.5px;color:#9c1a24;letter-spacing:1.6px;text-transform:uppercase;font-weight:700}
 .strati{position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:800;display:flex;flex-direction:column;gap:6px}
 .strati button,.tondo{font:inherit;font-size:12px;font-weight:650;border:0;background:rgba(255,255,255,.9);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#14171c;border-radius:12px;padding:7px 10px;box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;min-width:74px;text-align:center}
@@ -112,7 +113,7 @@ function onda(n,lat,lon){if(!OD)return null;const [bs,bn,bo,be]=OD.box,fy=(bn-la
  return{h:b(H),d:(Math.atan2(su,cu)*180/Math.PI+360)%360,p:T&&T[q]!=null?b(T):null}}
 const SO=[[0,[225,238,246]],[0.25,[175,212,236]],[0.5,[118,174,228]],[1,[64,124,212]],[1.5,[72,84,192]],[2,[122,62,172]],[3,[172,52,122]],[4,[205,42,62]]];
 const pioggia=(m,i,j)=>Math.max(0,blm(m.pr,i,j)),temporale=(m,i,j)=>{if(!m.ca)return 0;const c=blm(m.ca,i,j),p=pioggia(m,i,j);return Math.max(0,Math.min(1,(c-300)/700))*Math.min(1,0.3+p/0.6)};
-// posizione -> cella (frazionaria) della griglia di Lens
+// posizione -> cella (frazionaria) della griglia
 const ij=(lat,lon)=>[(lon-O0)/(E0-O0)*nx-.5,(N0-lat)/(N0-S0)*ny-.5];
 function campo(a,fi,fj){if(fi<-.5||fj<-.5||fi>nx-.5||fj>ny-.5)return null;const i0=Math.max(0,Math.min(nx-2,Math.floor(fi))),j0=Math.max(0,Math.min(ny-2,Math.floor(fj))),wx=Math.min(1,Math.max(0,fi-i0)),wy=Math.min(1,Math.max(0,fj-j0)),k=j0*nx+i0;
  return(a[k]*(1-wx)+a[k+1]*wx)*(1-wy)+(a[k+nx]*(1-wx)+a[k+nx+1]*wx)*wy}
@@ -131,12 +132,12 @@ let strato='vento',flusso=null,giro=null,sel=null;
 // ---- carta
 const lim=[[S0-0.03,O0-0.04],[N0+0.03,E0+0.04]];
 const map=L.map('map',{zoomControl:false,minZoom:10,maxZoom:16,maxBounds:L.latLngBounds(lim).pad(0.15),maxBoundsViscosity:0.8,attributionControl:true,zoomSnap:0.25,wheelPxPerZoomLevel:90});
-L.tileLayer('t/{z}/{x}/{y}.webp',{minZoom:10,maxZoom:16,maxNativeZoom:14,bounds:lim,attribution:'Rilievo Copernicus DEM · ESA WorldCover · © OpenStreetMap · '+D.modello+' via Open-Meteo · radar Sentinel-1'}).addTo(map);
+L.tileLayer('t/{z}/{x}/{y}.webp',{minZoom:10,maxZoom:16,maxNativeZoom:14,bounds:lim,attribution:'Rilievo Copernicus DEM · ESA WorldCover · © OpenStreetMap · '+D.modello+' via Open-Meteo · Copernicus Sentinel-1'}).addTo(map);
 map.fitBounds([[38.04,13.17],[38.25,13.56]]);
 {const zmin=map.getBoundsZoom([[S0,O0],[N0,E0]],false);map.setMinZoom(Math.max(10,Math.floor(zmin*4)/4));map.setMaxBounds(L.latLngBounds([[S0,O0],[N0,E0]]).pad(0.08));map.options.maxBoundsViscosity=1}
 map.createPane('costa').style.zIndex=430;
 fetch('costa.json').then(r=>r.json()).then(c=>{L.polyline(c,{pane:'costa',color:'#2c3e50',weight:1.4,opacity:.9,interactive:false,smoothFactor:1}).addTo(map)}).catch(()=>{});
-// campo colorato: un'immagine a griglia di Lens, ridisegnata solo quando cambiano ora o strato
+// campo colorato: un'immagine a griglia, ridisegnata solo quando cambiano ora o strato
 const cvF=document.createElement('canvas');cvF.width=nx;cvF.height=ny;const cxF=cvF.getContext('2d');let ovl=null;
 function immagine(){const o=ora(h),im=cxF.createImageData(nx,ny),d=im.data;
  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const k=j*nx+i;let c=null,a=0;
@@ -246,7 +247,6 @@ def pagina(dati):
     import datetime as dt
     from zoneinfo import ZoneInfo
     gen = dt.datetime.fromisoformat(dati["generato"]).astimezone(ZoneInfo("Europe/Rome"))
-    l2 = " e corretto sul mare con le misure del radar dei satelliti Sentinel-1 (Lens 2)" if dati.get("lens2") else ""
     return f"""<!DOCTYPE html>
 <html lang="it"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -256,7 +256,7 @@ def pagina(dati):
 <meta name="apple-mobile-web-app-title" content="Pistrice Lab"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>{_leggi('web', 'leaflet.css')}{fonti()}{CSS}</style></head><body>
 <div id="map"></div><canvas id="oc"></canvas><canvas id="pc"></canvas>
-<div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small></div></div>
+<div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small><em>I like the shape of the sail</em><em class="cr">Crafted by Giù Ferrarella</em></div></div>
 <div class="strati"><button type="button" data-v="vento" aria-pressed="true">Vento</button><button type="button" data-v="raff" aria-pressed="false">Raffiche</button><button type="button" data-v="pioggia" aria-pressed="false">Pioggia</button><button type="button" data-v="onde" aria-pressed="false">Onde</button><button type="button" id="flx" aria-pressed="true" title="Scie del vento">≋ scie</button></div>
 <div id="cas"><button type="button" class="maniglia" id="man" aria-label="apri il cassetto"><span></span></button>
 <div id="base"><div class="ora"><b id="tl"></b><span id="un"></span></div>
@@ -265,13 +265,12 @@ def pagina(dati):
 <div class="scala" id="sc"></div></div>
 <div class="altro"><h3>Nel punto</h3><div id="punto"></div>
 <h3>L'aria adesso</h3><p id="aria"></p>
-<h3>Come è fatta</h3>
-<p>Vento e raffiche a 10 m, in nodi, su quadretti di {dati['dx']:.0f} m. Il vento di {dati['modello']} è ricalcolato sul rilievo vero con il metodo Lens{l2}: ridossi, accelerazioni sui capi e vento che si incanala tra i monti. Pioggia e temporali vengono da ICON-2I.</p>
-<p>Si allarga con due dita; la carta resta nitida. Le scie bianche mostrano il flusso: si spengono con «≋ scie». Un tocco sulla carta mostra i valori del punto, un altro li toglie.</p>
-<p>Onde: altezza significativa, direzione e periodo da {(dati.get('onde') or {}).get('modello', 'un modello del mare')} via Open-Meteo Marine, senza rielaborazione. Sotto costa vale il dato del largo più vicino: la rifrazione e i ridossi delle onde non sono ancora calcolati.</p>
-<p>Aggiornata il {gen:%d/%m alle %H:%M}, due volte al giorno. <span id="vecchio" style="color:#9a5b00;font-weight:600"></span></p>
-<p style="font-size:11.5px;color:#6b6e74">Fonti: ECMWF e ICON-2I via Open-Meteo.com (CC BY 4.0); Copernicus Sentinel-1; Copernicus DEM GLO-30; ESA WorldCover 2021 (CC BY 4.0); © OpenStreetMap contributors (ODbL); Leaflet (BSD).</p>
-<div class="firma"><img src="logo.png" alt=""><p><b>Pistrice Sailing · Weather Lab</b><br>Il vento del golfo, per chi esce in mare.</p></div>
+<h3>Informazioni</h3>
+<p>Previsione ad alta risoluzione di vento, raffiche, pioggia e onde sui golfi di Palermo e Mondello, prodotta da Pistrice Sailing Weather Lab. Vento e raffiche a 10 m, in nodi; onde come altezza significativa, direzione e periodo.</p>
+<p>Si allarga con due dita. Le scie bianche mostrano il flusso e si spengono con «≋ scie». Un tocco sulla carta mostra i valori del punto, un secondo tocco li toglie.</p>
+<p>Aggiornata il {gen:%d/%m alle %H:%M}, due volte al giorno. Previsione indicativa: non sostituisce i bollettini ufficiali. <span id="vecchio" style="color:#9a5b00;font-weight:600"></span></p>
+<p style="font-size:11.5px;color:#6b6e74">Fonti dei dati: ECMWF, ICON-2I e modelli del mare via Open-Meteo.com (CC BY 4.0); Copernicus Sentinel-1; Copernicus DEM GLO-30; ESA WorldCover 2021 (CC BY 4.0); © OpenStreetMap contributors (ODbL); Leaflet (BSD).</p>
+<div class="firma"><img src="logo.png" alt=""><p><b>Pistrice Sailing · Weather Lab</b><br><i>I like the shape of the sail</i><br>Crafted by Giù Ferrarella</p></div>
 </div></div>
 <script>{_leggi('web', 'leaflet.js')}</script>
 <script>{JS.replace("__DATI__", json.dumps(dati, separators=(",", ":"), ensure_ascii=False))}</script></body></html>"""
