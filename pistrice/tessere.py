@@ -35,9 +35,16 @@ def lat_di(y, z):
 
 def main():
     from rasterio.enums import Resampling
-    s, n, o, e = C.A.interno
-    s, n, o, e = s - 0.03, n + 0.03, o - 0.04, e + 0.04
-    lat0 = (s + n) / 2
+    si, ni, oi, ei = C.A.interno
+    lat0 = (si + ni) / 2
+    # il rilievo si legge su tutto quello che le tessere coprono al primo zoom (il piu' largo), cosi' ai bordi
+    # delle tessere non restano strisce
+    z0 = min(ZOOM)
+    s = lat_di(np.array([(int(y_di(si - 0.03, z0) // 256) + 1) * 256]), z0)[0] - 0.01
+    n = lat_di(np.array([int(y_di(ni + 0.03, z0) // 256) * 256]), z0)[0] + 0.01
+    o = int(x_di(oi - 0.04, z0) // 256) * 256 / (256 * 2 ** z0) * 360 - 180 - 0.01
+    e = (int(x_di(ei + 0.04, z0) // 256) + 1) * 256 / (256 * 2 ** z0) * 360 - 180 + 0.01
+    print(f"rilievo letto su {s:.3f}-{n:.3f} N, {o:.3f}-{e:.3f} E")
     # rilievo a 30 m e copertura del suolo a 10 m, una volta sola
     ny30, nx30 = round((n - s) * 111190 / 30), round((e - o) * 111190 * math.cos(math.radians(lat0)) / 30)
     dem = np.maximum(C.mosaico(C.url_dem, 1, Resampling.bilinear, np.float32, (s, n, o, e), (ny30, nx30)), 0.0)
@@ -56,9 +63,10 @@ def main():
              (700, (0xD3, 0xB9, 0x8C)), (900, (0xBF, 0x9F, 0x7C)), (1100, (0xAB, 0x8D, 0x73)), (1350, (0xA0, 0x86, 0x70))]
     qr = np.array([p[0] for p in rampa], np.float32)
     totale = 0
+    dem_liscio = gaussian_filter(dem, 1.0)  # per l'ombreggiatura agli zoom alti: niente "puntinato" dei palazzi nel DSM
     for z in ZOOM:
-        tx0, tx1 = int(x_di(o, z) // 256), int(x_di(e, z) // 256)
-        ty0, ty1 = int(y_di(n, z) // 256), int(y_di(s, z) // 256)
+        tx0, tx1 = int(x_di(oi - 0.04, z) // 256), int(x_di(ei + 0.04, z) // 256)
+        ty0, ty1 = int(y_di(ni + 0.03, z) // 256), int(y_di(si - 0.03, z) // 256)
         W, H = (tx1 - tx0 + 1) * 256, (ty1 - ty0 + 1) * 256
         px = tx0 * 256 + np.arange(W) + 0.5
         py = ty0 * 256 + np.arange(H) + 0.5
@@ -80,8 +88,10 @@ def main():
         rgb = np.stack([np.interp(h, qr, [p[1][i] for p in rampa]) for i in range(3)], axis=-1).astype(np.float32)
         for f, col, forza in ((fb, (126, 164, 110), 0.42), (fc, (214, 186, 176), 0.55)):
             rgb += (np.array(col, np.float32) - rgb) * (f * forza)[..., None]
-        gy, gx = np.gradient(h, passo)
-        dzdx, dzdy = gx * 2.4, -gy * 2.4
+        hs = h if z <= 12 else np.maximum(map_coordinates(dem_liscio, [R, Cc], order=3, mode="nearest"), 0.0)
+        esag = {10: 2.4, 11: 2.4, 12: 2.2, 13: 1.8, 14: 1.5}[z]
+        gy, gx = np.gradient(hs, passo)
+        dzdx, dzdy = gx * esag, -gy * esag
         rel = np.clip((0.5 * dzdx - 0.5 * dzdy + 0.7071) / np.sqrt(dzdx ** 2 + dzdy ** 2 + 1.0) / 0.7071, 0.0, 1.45)
         rgb *= np.clip(0.52 + 0.48 * rel, 0.55, 1.16)[..., None]
         inchiostro = np.array((0x7A, 0x5A, 0x3C), np.float32)
@@ -119,7 +129,7 @@ def main():
     for nome, fx, fy, pri, tipo in C.luoghi(el):
         si, ni, oi, ei = C.A.interno
         luoghi.append([nome, round(ni - fy * (ni - si), 5), round(oi + fx * (ei - oi), 5), pri, tipo])
-    json.dump({"luoghi": luoghi, "limiti": [s, n, o, e], "zoom": [min(ZOOM), max(ZOOM)]},
+    json.dump({"luoghi": luoghi, "limiti": [si, ni, oi, ei], "zoom": [min(ZOOM), max(ZOOM)]},
               open(os.path.join(USCITA, "luoghi.json"), "w"), ensure_ascii=False, separators=(",", ":"))
     print("tessere:", totale, "· nomi:", len(luoghi))
 
