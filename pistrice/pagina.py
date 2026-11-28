@@ -256,7 +256,7 @@ def pagina(dati):
 <meta name="apple-mobile-web-app-title" content="Pistrice Lab"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>{_leggi('web', 'leaflet.css')}{fonti()}{CSS}</style></head><body>
 <div id="map"></div><canvas id="oc"></canvas><canvas id="pc"></canvas>
-<div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small><em>I like the shape of the sail</em><em class="cr">Crafted by Giù Ferrarella</em></div></div>
+<div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small><em>I like the shape of the sail</em><em class="cr">Crafted by Giuseppe Ferrarella</em></div></div>
 <div class="strati"><button type="button" data-v="vento" aria-pressed="true">Vento</button><button type="button" data-v="raff" aria-pressed="false">Raffiche</button><button type="button" data-v="pioggia" aria-pressed="false">Pioggia</button><button type="button" data-v="onde" aria-pressed="false">Onde</button><button type="button" id="flx" aria-pressed="true" title="Scie del vento">≋ scie</button></div>
 <div id="cas"><button type="button" class="maniglia" id="man" aria-label="apri il cassetto"><span></span></button>
 <div id="base"><div class="ora"><b id="tl"></b><span id="un"></span></div>
@@ -270,7 +270,7 @@ def pagina(dati):
 <p>Si allarga con due dita. Le scie bianche mostrano il flusso e si spengono con «≋ scie». Un tocco sulla carta mostra i valori del punto, un secondo tocco li toglie.</p>
 <p>Aggiornata il {gen:%d/%m alle %H:%M}, due volte al giorno. Previsione indicativa: non sostituisce i bollettini ufficiali. <span id="vecchio" style="color:#9a5b00;font-weight:600"></span></p>
 <p style="font-size:11.5px;color:#6b6e74">Fonti dei dati: ECMWF, ICON-2I e modelli del mare via Open-Meteo.com (CC BY 4.0); Copernicus Sentinel-1; Copernicus DEM GLO-30; ESA WorldCover 2021 (CC BY 4.0); © OpenStreetMap contributors (ODbL); Leaflet (BSD).</p>
-<div class="firma"><img src="logo.png" alt=""><p><b>Pistrice Sailing · Weather Lab</b><br><i>I like the shape of the sail</i><br>Crafted by Giù Ferrarella</p></div>
+<div class="firma"><img src="logo.png" alt=""><p><b>Pistrice Sailing · Weather Lab</b><br><i>I like the shape of the sail</i><br>Crafted by Giuseppe Ferrarella</p></div>
 </div></div>
 <script>{_leggi('web', 'leaflet.js')}</script>
 <script>{JS.replace("__DATI__", json.dumps(dati, separators=(",", ":"), ensure_ascii=False))}</script></body></html>"""
