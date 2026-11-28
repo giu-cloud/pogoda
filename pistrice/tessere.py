@@ -133,8 +133,9 @@ def main():
         for ln in contourpy.contour_generator(z=gaussian_filter(campo_m, 0.6)).lines(0.5):
             if len(ln) < 6:
                 continue
-            la_ = n - (ln[:, 0] + 0.5) / ny30 * (n - s)
-            lo_ = o + (ln[:, 1] + 0.5) / nx30 * (e - o)
+            # contourpy restituisce (colonna, riga)
+            la_ = n - (ln[:, 1] + 0.5) / ny30 * (n - s)
+            lo_ = o + (ln[:, 0] + 0.5) / nx30 * (e - o)
             dentro = (la_ > si - 0.05) & (la_ < ni + 0.05) & (lo_ > oi - 0.06) & (lo_ < ei + 0.06)
             if dentro.sum() < 4:
                 continue

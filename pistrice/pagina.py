@@ -30,6 +30,7 @@ CSS = r"""
 html,body{margin:0;height:100%;overflow:hidden;background:#cfe3ec;font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14171c;-webkit-tap-highlight-color:transparent}
 #map{position:fixed;inset:0;height:100dvh;background:#cfe3ec}
 #pc,#oc{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:450}
+#bl{position:fixed;left:0;top:0;width:0;height:0;z-index:700;pointer-events:none;display:none}
 .campo{mix-blend-mode:multiply}
 .brand{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;z-index:800;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:14px;padding:5px 10px 5px 6px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand img{height:30px;display:block}
@@ -157,16 +158,24 @@ function disponi(){nomi.clearLayers();const z=map.getZoom(),presi=[],b=map.getBo
   if(presi.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3])))continue;presi.push(r);
   nomi.addLayer(L.marker([la,lo],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:'<div class="nome '+cl+'">'+n+'</div>',iconSize:[0,0]})}))}}
 map.on('zoomend moveend',disponi);
-// ---- frecce delle onde (direzione verso cui vanno, lunghezza con l'altezza)
-const oc=Q('oc'),ox=oc.getContext('2d');
-function frecceOnde(){const r=window.devicePixelRatio||1;oc.width=innerWidth*r;oc.height=innerHeight*r;ox.clearRect(0,0,oc.width,oc.height);
- if(strato!=='onde'||!OD)return;const passo=56;ox.lineCap='round';
- for(let y=passo/2;y<innerHeight;y+=passo)for(let x=passo/2;x<innerWidth;x+=passo){const ll=map.containerPointToLatLng([x,y]),[fi,fj]=ij(ll.lat,ll.lng),i=Math.round(fi),j=Math.round(fj);
-  if(i<0||j<0||i>=nx||j>=ny||!MAR[j*nx+i])continue;const w=onda(h,ll.lat,ll.lng);if(!w)continue;
-  const a=(w.d+180)*Math.PI/180,L=(10+Math.min(14,w.h*7))*r,dx=Math.sin(a)*L/2,dy=-Math.cos(a)*L/2,X=x*r,Y=y*r;
-  ox.strokeStyle='rgba(15,25,45,.8)';ox.lineWidth=2*r;ox.beginPath();ox.moveTo(X-dx,Y-dy);ox.lineTo(X+dx,Y+dy);
-  const pa=a+Math.PI,hl=5*r;ox.moveTo(X+dx,Y+dy);ox.lineTo(X+dx+Math.sin(pa-0.5)*hl,Y+dy-Math.cos(pa-0.5)*hl);ox.moveTo(X+dx,Y+dy);ox.lineTo(X+dx+Math.sin(pa+0.5)*hl,Y+dy-Math.cos(pa+0.5)*hl);ox.stroke()}}
-map.on('moveend zoomend',frecceOnde);map.on('movestart zoomstart',()=>ox.clearRect(0,0,oc.width,oc.height));addEventListener('resize',frecceOnde);
+// ---- creste delle onde: si muovono verso dove va l'onda, piu' veloci col periodo, piu' larghe con l'altezza
+const oc=Q('oc'),ox=oc.getContext('2d');let cre=[],animO=null,fermoO=false;
+function ondeOn(){return strato==='onde'&&!!OD&&(flusso==null||flusso)}
+function cresta(){for(let k=0;k<6;k++){const x=Math.random()*innerWidth,y=Math.random()*innerHeight,ll=map.containerPointToLatLng([x,y]),[fi,fj]=ij(ll.lat,ll.lng),i=Math.round(fi),j=Math.round(fj);
+  if(i<0||j<0||i>=nx||j>=ny||!MAR[j*nx+i])continue;const w=onda(h,ll.lat,ll.lng);if(!w||w.h<0.05)continue;
+  return{x:x,y:y,a:(w.d+180)*Math.PI/180,h:w.h,v:0.09*Math.max(3,w.p||6),e:0,vita:110+Math.random()*90}}return null}
+function passoO(){animO=requestAnimationFrame(passoO);if(fermoO)return;const r=window.devicePixelRatio||1;
+ if(oc.width!==innerWidth*r){oc.width=innerWidth*r;oc.height=innerHeight*r}ox.setTransform(r,0,0,r,0,0);ox.clearRect(0,0,innerWidth,innerHeight);
+ const n=Math.round(Math.min(900,innerWidth*innerHeight/1500));while(cre.length<n){const c=cresta();if(!c)break;c.e=Math.random()*c.vita;cre.push(c)}
+ ox.lineCap='round';ox.lineWidth=1.5;
+ for(let k=cre.length-1;k>=0;k--){const c=cre[k],dx=Math.sin(c.a),dy=-Math.cos(c.a);c.x+=dx*c.v;c.y+=dy*c.v;c.e++;
+  let morta=c.e>c.vita;if(!morta&&c.e%15===0){const ll=map.containerPointToLatLng([c.x,c.y]),[fi,fj]=ij(ll.lat,ll.lng),i=Math.round(fi),j=Math.round(fj);morta=i<0||j<0||i>=nx||j>=ny||!MAR[j*nx+i]}
+  if(morta){const nc=cresta();if(nc)cre[k]=nc;else cre.splice(k,1);continue}
+  const al=Math.sin(Math.PI*c.e/c.vita)*0.85,L=5+Math.min(13,c.h*5),px_=-dy*L,py_=dx*L;
+  ox.strokeStyle='rgba(12,28,58,'+al.toFixed(3)+')';ox.beginPath();ox.moveTo(c.x-px_,c.y-py_);ox.quadraticCurveTo(c.x+dx*3.5,c.y+dy*3.5,c.x+px_,c.y+py_);ox.stroke()}}
+function frecceOnde(){cre=[];if(ondeOn()){if(!animO)animO=requestAnimationFrame(passoO)}else{if(animO){cancelAnimationFrame(animO);animO=null}ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,oc.width,oc.height)}}
+map.on('movestart zoomstart',()=>{fermoO=true;ox.setTransform(1,0,0,1,0,0);ox.clearRect(0,0,oc.width,oc.height)});
+map.on('moveend zoomend',()=>{fermoO=false;cre=[]});addEventListener('resize',()=>{cre=[]});
 // ---- scie del vento
 const pc=Q('pc'),px=pc.getContext('2d');let part=[],anim=null,fermo=false;
 function flussoOn(){return flusso==null?(strato!=='pioggia'&&strato!=='onde'):flusso}
@@ -182,12 +191,12 @@ function passo(){anim=requestAnimationFrame(passo);if(fermo)return;const r=windo
   const dx=u*kv,dy=-v*kv;px.moveTo(p.x,p.y);px.lineTo(p.x+dx,p.y+dy);p.x+=dx;p.y+=dy;p.e++;
   if(p.x<0||p.y<0||p.x>w||p.y>hh||Math.abs(u)+Math.abs(v)<0.3)Object.assign(p,nuova(false))}
  px.stroke()}
-function aggiornaFlusso(){const on=flussoOn();Q('flx').setAttribute('aria-pressed',on);
+function aggiornaFlusso(){const on=flussoOn();Q('flx').setAttribute('aria-pressed',strato==='onde'?ondeOn():on);
  if(!on){if(anim){cancelAnimationFrame(anim);anim=null}px.clearRect(0,0,pc.width,pc.height);return}if(!anim)anim=requestAnimationFrame(passo)}
 map.on('movestart zoomstart',()=>{fermo=true;px.clearRect(0,0,pc.width,pc.height)});
 map.on('moveend zoomend',()=>{fermo=false;part=[]});
 addEventListener('resize',()=>{misura()});
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&anim){cancelAnimationFrame(anim);anim=null}else if(!document.hidden)aggiornaFlusso()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(anim){cancelAnimationFrame(anim);anim=null}if(animO){cancelAnimationFrame(animO);animO=null}}else{aggiornaFlusso();frecceOnde()}});
 // ---- punto toccato: adesso, tra 1 ora e tra 2 ore, accanto al dito
 let mk=null;
 function freccia(d){return '<svg viewBox="0 0 20 20"><path d="M10 2 L15 16 L10 13 L5 16 Z" fill="#fff" transform="rotate('+((d+180)%360)+' 10 10)"/></svg>'}
@@ -195,14 +204,18 @@ function valori(n,ll){const o=ora(n),[fi,fj]=ij(ll.lat,ll.lng),s=campo(o.S,fi,fj
  const u=campo(o.U,fi,fj),w=campo(o.W,fi,fj),d=(Math.atan2(-u,-w)*180/Math.PI+360)%360,i=Math.round(fi),j=Math.round(fj);
  const mare=MAR[Math.max(0,Math.min(ny-1,j))*nx+Math.max(0,Math.min(nx-1,i))];
  return{s:s,g:campo(o.G,fi,fj),d:d,p:pioggia(o.m,i,j),t:temporale(o.m,i,j),mare:mare,w:mare?onda(n,ll.lat,ll.lng):null}}
-function bolla(){if(!sel){if(mk){map.removeLayer(mk);mk=null}return}
+const BL=Q('bl');
+function bolla(){if(!sel){BL.style.display='none';BL.innerHTML='';return}
  const col=[];for(const [dh,et] of [[0,'ora'],[1,'+1 h'],[2,'+2 h']]){const n=Math.min(NH-1,h+dh),v=valori(n,sel);if(!v)continue;
   const val=strato==='raff'?v.g:v.s,on=v.w?'<small class="w">≈ '+num(v.w.h,1)+' m '+freccia(v.w.d)+'</small>':'';
   col.push('<div><em>'+(dh?et:soloOra(ORE[n].t))+'</em><b>'+num(val,0)+'</b><small>'+freccia(v.d)+String(Math.round(v.d)).padStart(3,'0')+'°</small>'+on+'</div>')}
  if(!col.length){sel=null;bolla();return}
  const p=map.latLngToContainerPoint(sel),cls='bolla'+(p.x+215>innerWidth?' sx':'')+(p.y<130?' giu':'');
  const html='<div class="pt"><i></i><div class="'+cls+'">'+col.join('')+'</div></div>';
- if(!mk)mk=L.marker(sel,{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:html,iconSize:[0,0]})}).addTo(map);else{mk.setLatLng(sel);mk.setIcon(L.divIcon({className:'',html:html,iconSize:[0,0]}))}}
+ BL.innerHTML=html;BL.style.display='block';posaBolla()}
+function posaBolla(){if(!sel)return;const p=map.latLngToContainerPoint(sel);BL.style.transform='translate('+p.x+'px,'+p.y+'px)';
+ const b=BL.querySelector('.bolla');if(b){const w=b.offsetWidth;b.style.right='auto';b.style.left=Math.max(8-p.x,Math.min(innerWidth-8-p.x-w,-w/2))+'px'}}
+map.on('move',posaBolla);map.on('zoomstart',()=>{BL.style.display='none'});
 map.on('click',e=>{if(sel){sel=null}else{const v=valori(h,e.latlng);sel=v?e.latlng:null}bolla();dettagli()});
 map.on('zoomend',()=>{if(sel)bolla()});
 // ---- cassetto
@@ -221,7 +234,7 @@ function dettagli(){const m=ORE[h];
  Q('punto').innerHTML='<p><b>'+sel.lat.toFixed(4)+'° N, '+sel.lng.toFixed(4)+'° E</b> · '+(v0&&v0.mare?'mare':'terra')+(v0?' · '+NOMI[Math.round(v0.d/45)%8]:'')+'</p><table class="tab"><tr><th>ora</th><th>nodi</th><th>raffica</th><th>da</th><th>Bft</th><th>pioggia</th><th>onda</th></tr>'+r+'</table>'}
 function tutto(){Q('tl').textContent=fmtOra(ORE[h].t);immagine();bolla();dettagli();legenda();frecceOnde()}
 document.querySelectorAll('.strati button[data-v]').forEach(b=>b.addEventListener('click',()=>{strato=b.dataset.v;document.querySelectorAll('.strati button[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b));tutto();aggiornaFlusso()}));
-Q('flx').addEventListener('click',()=>{flusso=!flussoOn();aggiornaFlusso()});
+Q('flx').addEventListener('click',()=>{flusso=strato==='onde'?!ondeOn():!flussoOn();aggiornaFlusso();frecceOnde()});
 const cur=Q('cur');cur.max=NH-1;cur.value=h;cur.addEventListener('input',()=>{h=+cur.value;tutto()});
 const vai=d=>{h=Math.max(0,Math.min(NH-1,h+d));cur.value=h;tutto()};Q('prima').onclick=()=>vai(-1);Q('dopo').onclick=()=>vai(1);
 Q('play').onclick=()=>{if(giro){clearInterval(giro);giro=null;Q('play').classList.remove('on');Q('play').textContent='▶';return}
@@ -255,7 +268,7 @@ def pagina(dati):
 <meta name="theme-color" content="#9c1a24"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pistrice Lab"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>{_leggi('web', 'leaflet.css')}{fonti()}{CSS}</style></head><body>
-<div id="map"></div><canvas id="oc"></canvas><canvas id="pc"></canvas>
+<div id="map"></div><canvas id="oc"></canvas><canvas id="pc"></canvas><div id="bl"></div>
 <div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small><em>I like the shape of the sail</em><em class="cr">Crafted by Giuseppe Ferrarella</em></div></div>
 <div class="strati"><button type="button" data-v="vento" aria-pressed="true">Vento</button><button type="button" data-v="raff" aria-pressed="false">Raffiche</button><button type="button" data-v="pioggia" aria-pressed="false">Pioggia</button><button type="button" data-v="onde" aria-pressed="false">Onde</button><button type="button" id="flx" aria-pressed="true" title="Scie del vento">≋ scie</button></div>
 <div id="cas"><button type="button" class="maniglia" id="man" aria-label="apri il cassetto"><span></span></button>
