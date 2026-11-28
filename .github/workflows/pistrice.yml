@@ -1,0 +1,96 @@
+name: pistrice
+# Pistrice Sailing · Weather Lab, due volte al giorno: Lens sul rilievo per ECMWF e ICON-2I a 100 m, ognuno corretto con
+# Lens 2 (livello del radar su 10 km, ombre a 0,25 come il motore 0.59.2), insieme 0,7/0,3 per la forza e 0,3/0,7 per la
+# direzione. La pagina va nella release "pistrice"; il lavoro "pogoda" la pubblica. Le tessere della carta si fanno una
+# volta sola (o a comando). Deposito pubblico: minuti gratuiti.
+on:
+  schedule:
+    - cron: "53 5,17 * * *"
+  workflow_dispatch:
+    inputs:
+      tessere:
+        description: "1 = rifai le tessere della carta"
+        default: "0"
+  push:
+    branches: [main]
+    paths: ["pistrice/**", ".github/workflows/pistrice.yml"]
+permissions:
+  contents: write
+  actions: write
+concurrency: pistrice
+jobs:
+  carta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: servono le tessere?
+        id: serve
+        run: |
+          if [ ! -f sito/pistrice/luoghi.json ] || [ "${{ github.event.inputs.tessere }}" = "1" ]; then echo "si=1" >> $GITHUB_OUTPUT; else echo "si=0" >> $GITHUB_OUTPUT; fi
+      - if: steps.serve.outputs.si == '1'
+        uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - if: steps.serve.outputs.si == '1'
+        run: pip install --quiet numpy scipy rasterio pillow
+      - if: steps.serve.outputs.si == '1'
+        env: {LENS_DX: "100"}
+        run: |
+          rm -rf sito/pistrice/t
+          python3 pistrice/tessere.py
+          git config user.name "pogoda"; git config user.email "actions@users.noreply.github.com"
+          git add sito/pistrice
+          git commit -q -m "Pistrice: tessere della carta"
+          git pull -q --rebase; git push
+  lens:
+    needs: carta
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {nome: ecmwf, modello: ecmwf_ifs025, libreria: lra1_ecmwf_palermo.lra}
+          - {nome: icon, modello: italia_meteo_arpae_icon_2i, libreria: lra1_icon-2i_palermo.lra}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install --quiet numpy scipy pyamg rasterio pillow eccodes
+      - name: libreria del radar
+        run: |
+          mkdir -p librerie
+          curl -sSfL -o librerie/lib.lra https://github.com/giu-cloud/lens/releases/download/librerie-lra1/${{ matrix.libreria }} || echo "libreria non scaricata: si va senza"
+      - name: calcolo
+        env:
+          LENS_PAGINA: "1"
+          LENS_ORE: "36"
+          LENS_MODELLO: ${{ matrix.modello }}
+          LENS2_LIB: librerie/lib.lra
+          LENS_SALVA: ${{ matrix.nome }}.json
+          LENS_DX: "100"
+          LENS_FORZA: "0.25"       # motore 0.58.5 (decisione 10 del 27/11): ombre a 0,25, rotazione piena
+          LENS_LIVELLO_KM: "10"    # motore 0.59 (decisione 12 del 27/11): livello del radar su 10 km
+        run: python3 pistrice/lens/calcola.py
+      - uses: actions/upload-artifact@v4
+        with: {name: "${{ matrix.nome }}", path: "${{ matrix.nome }}.json", retention-days: 1}
+  pagina:
+    needs: lens
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install --quiet numpy
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: {path: calcoli, merge-multiple: true}
+      - run: python3 pistrice/unisci.py calcoli/ecmwf.json calcoli/icon.json
+      - name: nella release e poi nel sito
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cp pistrice/uscita/index.html pistrice.html
+          gh release view pistrice >/dev/null 2>&1 || gh release create pistrice --title "Pistrice" --notes "Pistrice Sailing · Weather Lab, rifatta due volte al giorno."
+          gh release upload pistrice pistrice.html --clobber
+          gh api -X POST repos/${{ github.repository }}/actions/workflows/pogoda.yml/dispatches -f ref=main -f "inputs[forza]=0"

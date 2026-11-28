@@ -97,6 +97,24 @@ def main():
     except Exception as e:
         print("pietro: pagina non disponibile:", e)
         shutil.rmtree(os.path.join(SITO, "pietro"), ignore_errors=True)
+    # Pistrice Sailing · Weather Lab: pagina dalla release "pistrice", tessere e nomi dal deposito
+    try:
+        import urllib.request
+        dest = os.path.join(SITO, "pistrice")
+        if os.path.exists(os.path.join(QUI, "pistrice", "luoghi.json")):
+            shutil.copytree(os.path.join(QUI, "pistrice"), dest, dirs_exist_ok=True)
+            req = urllib.request.Request("https://github.com/giu-cloud/pogoda/releases/download/pistrice/pistrice.html",
+                                         headers={"User-Agent": "pogoda"})
+            open(os.path.join(dest, "index.html"), "wb").write(urllib.request.urlopen(req, timeout=60).read())
+            json.dump({"name": "Pistrice Sailing · Weather Lab", "short_name": "Pistrice Lab", "start_url": "./", "scope": "./",
+                       "display": "standalone", "background_color": "#cfe3ec", "theme_color": "#9c1a24",
+                       "icons": [{"src": "icona_192.png", "sizes": "192x192", "type": "image/png"},
+                                 {"src": "icona_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}]},
+                      open(os.path.join(dest, "manifest.webmanifest"), "w"))
+            print("pistrice: pagina presa dalla release")
+    except Exception as e:
+        print("pistrice: pagina non disponibile:", e)
+        shutil.rmtree(os.path.join(SITO, "pistrice"), ignore_errors=True)
     # il primo indirizzo della seconda casa porta a quello nuovo
     os.makedirs(os.path.join(SITO, "feodor"), exist_ok=True)
     open(os.path.join(SITO, "feodor", "index.html"), "w", encoding="utf-8").write(
