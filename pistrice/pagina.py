@@ -29,7 +29,8 @@ def fonti():
 CSS = r"""
 html,body{margin:0;height:100%;overflow:hidden;background:#cfe3ec;font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#14171c;-webkit-tap-highlight-color:transparent}
 #map{position:fixed;inset:0;height:100dvh;background:#cfe3ec}
-#pc{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:450}
+#pc,#oc{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:450}
+.campo{mix-blend-mode:multiply}
 .brand{position:fixed;top:calc(8px + env(safe-area-inset-top));left:8px;z-index:800;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:14px;padding:5px 10px 5px 6px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .brand img{height:30px;display:block}
 .brand b{display:block;font-family:'Garamond Stara',Georgia,serif;font-weight:500;font-size:15px;line-height:1.05;letter-spacing:.3px}
@@ -55,6 +56,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#cfe3ec;font:15px/1.4 
 .bolla b{display:block;font-size:17px;line-height:1.1}
 .bolla small{display:block;font-size:10.5px;opacity:.85;font-variant-numeric:tabular-nums}
 .bolla svg{width:14px;height:14px;vertical-align:-2px;margin-right:2px}
+.bolla small.w{margin-top:2px;color:#9fd0ff}
 #cas{position:fixed;left:0;right:0;bottom:0;z-index:900;background:rgba(253,253,251,.97);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:18px 18px 0 0;box-shadow:0 -4px 20px rgba(0,0,0,.18);padding:0 12px calc(10px + env(safe-area-inset-bottom));max-height:75dvh;overflow:hidden;touch-action:none}
 #cas.anima{transition:transform .25s ease}
 #cas.aperto{overflow-y:auto;touch-action:pan-y}
@@ -101,6 +103,14 @@ function ora(n){if(CAMPO[n])return CAMPO[n];const V=BIN.subarray(n*N,n*N+N),G=BI
 // pioggia e CAPE: griglia del modello su tutto il dominio di calcolo
 function blm(a,i,j){if(!a)return 0;const gx=(i+D.m+.5)/D.NX*(D.gx-1),gy=(j+D.m+.5)/D.NY*(D.gy-1),x0=Math.max(0,Math.min(D.gx-2,Math.floor(gx))),y0=Math.max(0,Math.min(D.gy-2,Math.floor(gy))),wx=gx-x0,wy=gy-y0,q=y0*D.gx+x0;
  return(a[q]*(1-wx)+a[q+1]*wx)*(1-wy)+(a[q+D.gx]*(1-wx)+a[q+D.gx+1]*wx)*wy}
+const OD=D.onde;
+function onda(n,lat,lon){if(!OD)return null;const [bs,bn,bo,be]=OD.box,fy=(bn-lat)/(bn-bs)*(OD.gy-1),fx=(lon-bo)/(be-bo)*(OD.gx-1);
+ if(fx<0||fy<0||fx>OD.gx-1||fy>OD.gy-1)return null;const x0=Math.min(OD.gx-2,Math.floor(fx)),y0=Math.min(OD.gy-2,Math.floor(fy)),wx=fx-x0,wy=fy-y0,q=y0*OD.gx+x0,G=OD.gx;
+ const H=OD.h[n],Dd=OD.d[n],T=OD.p[n];if(!H||H[q]==null)return null;
+ const b=a=>(a[q]*(1-wx)+a[q+1]*wx)*(1-wy)+(a[q+G]*(1-wx)+a[q+G+1]*wx)*wy;
+ let su=0,cu=0;for(const [k,w] of [[q,(1-wx)*(1-wy)],[q+1,wx*(1-wy)],[q+G,(1-wx)*wy],[q+G+1,wx*wy]]){const r=Dd[k]*Math.PI/180;su+=w*Math.sin(r);cu+=w*Math.cos(r)}
+ return{h:b(H),d:(Math.atan2(su,cu)*180/Math.PI+360)%360,p:T&&T[q]!=null?b(T):null}}
+const SO=[[0,[225,238,246]],[0.25,[175,212,236]],[0.5,[118,174,228]],[1,[64,124,212]],[1.5,[72,84,192]],[2,[122,62,172]],[3,[172,52,122]],[4,[205,42,62]]];
 const pioggia=(m,i,j)=>Math.max(0,blm(m.pr,i,j)),temporale=(m,i,j)=>{if(!m.ca)return 0;const c=blm(m.ca,i,j),p=pioggia(m,i,j);return Math.max(0,Math.min(1,(c-300)/700))*Math.min(1,0.3+p/0.6)};
 // posizione -> cella (frazionaria) della griglia di Lens
 const ij=(lat,lon)=>[(lon-O0)/(E0-O0)*nx-.5,(N0-lat)/(N0-S0)*ny-.5];
@@ -123,11 +133,15 @@ const lim=[[S0-0.03,O0-0.04],[N0+0.03,E0+0.04]];
 const map=L.map('map',{zoomControl:false,minZoom:10,maxZoom:16,maxBounds:L.latLngBounds(lim).pad(0.15),maxBoundsViscosity:0.8,attributionControl:true,zoomSnap:0.25,wheelPxPerZoomLevel:90});
 L.tileLayer('t/{z}/{x}/{y}.webp',{minZoom:10,maxZoom:16,maxNativeZoom:14,bounds:lim,attribution:'Rilievo Copernicus DEM · ESA WorldCover · © OpenStreetMap · '+D.modello+' via Open-Meteo · radar Sentinel-1'}).addTo(map);
 map.fitBounds([[38.04,13.17],[38.25,13.56]]);
+{const zmin=map.getBoundsZoom([[S0,O0],[N0,E0]],false);map.setMinZoom(Math.max(10,Math.floor(zmin*4)/4));map.setMaxBounds(L.latLngBounds([[S0,O0],[N0,E0]]).pad(0.08));map.options.maxBoundsViscosity=1}
+map.createPane('costa').style.zIndex=430;
+fetch('costa.json').then(r=>r.json()).then(c=>{L.polyline(c,{pane:'costa',color:'#2c3e50',weight:1.4,opacity:.9,interactive:false,smoothFactor:1}).addTo(map)}).catch(()=>{});
 // campo colorato: un'immagine a griglia di Lens, ridisegnata solo quando cambiano ora o strato
 const cvF=document.createElement('canvas');cvF.width=nx;cvF.height=ny;const cxF=cvF.getContext('2d');let ovl=null;
 function immagine(){const o=ora(h),im=cxF.createImageData(nx,ny),d=im.data;
  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const k=j*nx+i;let c=null,a=0;
-  if(strato==='vento'){c=sfuma(WS,o.S[k]);a=150}else if(strato==='raff'){c=sfuma(WS,o.G[k]);a=160}
+  if(strato==='vento'){c=sfuma(WS,o.S[k]);a=MAR[k]?190:110}else if(strato==='raff'){c=sfuma(WS,o.G[k]);a=MAR[k]?200:120}
+  else if(strato==='onde'){if(MAR[k]){const w=onda(h,N0-(j+.5)/ny*(N0-S0),O0+(i+.5)/nx*(E0-O0));if(w){c=sfuma(SO,w.h);a=200}}}
   else{const p=pioggia(o.m,i,j),t=temporale(o.m,i,j);if(t>0.15){c=[150,60,190];a=Math.min(210,60+150*t)}else if(p>=0.1){c=sfuma(SP,p);a=Math.min(220,90+p*60)}}
   const q=4*k;if(c){d[q]=c[0];d[q+1]=c[1];d[q+2]=c[2];d[q+3]=a}}
  cxF.putImageData(im,0,0);const url=cvF.toDataURL('image/png');
@@ -142,9 +156,19 @@ function disponi(){nomi.clearLayers();const z=map.getZoom(),presi=[],b=map.getBo
   if(presi.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3])))continue;presi.push(r);
   nomi.addLayer(L.marker([la,lo],{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:'<div class="nome '+cl+'">'+n+'</div>',iconSize:[0,0]})}))}}
 map.on('zoomend moveend',disponi);
+// ---- frecce delle onde (direzione verso cui vanno, lunghezza con l'altezza)
+const oc=Q('oc'),ox=oc.getContext('2d');
+function frecceOnde(){const r=window.devicePixelRatio||1;oc.width=innerWidth*r;oc.height=innerHeight*r;ox.clearRect(0,0,oc.width,oc.height);
+ if(strato!=='onde'||!OD)return;const passo=56;ox.lineCap='round';
+ for(let y=passo/2;y<innerHeight;y+=passo)for(let x=passo/2;x<innerWidth;x+=passo){const ll=map.containerPointToLatLng([x,y]),[fi,fj]=ij(ll.lat,ll.lng),i=Math.round(fi),j=Math.round(fj);
+  if(i<0||j<0||i>=nx||j>=ny||!MAR[j*nx+i])continue;const w=onda(h,ll.lat,ll.lng);if(!w)continue;
+  const a=(w.d+180)*Math.PI/180,L=(10+Math.min(14,w.h*7))*r,dx=Math.sin(a)*L/2,dy=-Math.cos(a)*L/2,X=x*r,Y=y*r;
+  ox.strokeStyle='rgba(15,25,45,.8)';ox.lineWidth=2*r;ox.beginPath();ox.moveTo(X-dx,Y-dy);ox.lineTo(X+dx,Y+dy);
+  const pa=a+Math.PI,hl=5*r;ox.moveTo(X+dx,Y+dy);ox.lineTo(X+dx+Math.sin(pa-0.5)*hl,Y+dy-Math.cos(pa-0.5)*hl);ox.moveTo(X+dx,Y+dy);ox.lineTo(X+dx+Math.sin(pa+0.5)*hl,Y+dy-Math.cos(pa+0.5)*hl);ox.stroke()}}
+map.on('moveend zoomend',frecceOnde);map.on('movestart zoomstart',()=>ox.clearRect(0,0,oc.width,oc.height));addEventListener('resize',frecceOnde);
 // ---- scie del vento
 const pc=Q('pc'),px=pc.getContext('2d');let part=[],anim=null,fermo=false;
-function flussoOn(){return flusso==null?strato!=='pioggia':flusso}
+function flussoOn(){return flusso==null?(strato!=='pioggia'&&strato!=='onde'):flusso}
 function misura(){const r=window.devicePixelRatio||1;pc.width=innerWidth*r;pc.height=innerHeight*r;part=[]}
 function nuova(a){return{x:Math.random()*pc.width,y:Math.random()*pc.height,e:a?Math.floor(Math.random()*70):0}}
 function passo(){anim=requestAnimationFrame(passo);if(fermo)return;const r=window.devicePixelRatio||1,w=pc.width,hh=pc.height,o=ora(h);
@@ -168,30 +192,33 @@ let mk=null;
 function freccia(d){return '<svg viewBox="0 0 20 20"><path d="M10 2 L15 16 L10 13 L5 16 Z" fill="#fff" transform="rotate('+((d+180)%360)+' 10 10)"/></svg>'}
 function valori(n,ll){const o=ora(n),[fi,fj]=ij(ll.lat,ll.lng),s=campo(o.S,fi,fj);if(s==null)return null;
  const u=campo(o.U,fi,fj),w=campo(o.W,fi,fj),d=(Math.atan2(-u,-w)*180/Math.PI+360)%360,i=Math.round(fi),j=Math.round(fj);
- return{s:s,g:campo(o.G,fi,fj),d:d,p:pioggia(o.m,i,j),t:temporale(o.m,i,j),mare:MAR[Math.max(0,Math.min(ny-1,j))*nx+Math.max(0,Math.min(nx-1,i))]}}
+ const mare=MAR[Math.max(0,Math.min(ny-1,j))*nx+Math.max(0,Math.min(nx-1,i))];
+ return{s:s,g:campo(o.G,fi,fj),d:d,p:pioggia(o.m,i,j),t:temporale(o.m,i,j),mare:mare,w:mare?onda(n,ll.lat,ll.lng):null}}
 function bolla(){if(!sel){if(mk){map.removeLayer(mk);mk=null}return}
  const col=[];for(const [dh,et] of [[0,'ora'],[1,'+1 h'],[2,'+2 h']]){const n=Math.min(NH-1,h+dh),v=valori(n,sel);if(!v)continue;
-  const val=strato==='raff'?v.g:v.s;col.push('<div><em>'+(dh?et:soloOra(ORE[n].t))+'</em><b>'+num(val,0)+'</b><small>'+freccia(v.d)+String(Math.round(v.d)).padStart(3,'0')+'°</small></div>')}
+  const val=strato==='raff'?v.g:v.s,on=v.w?'<small class="w">≈ '+num(v.w.h,1)+' m '+freccia(v.w.d)+'</small>':'';
+  col.push('<div><em>'+(dh?et:soloOra(ORE[n].t))+'</em><b>'+num(val,0)+'</b><small>'+freccia(v.d)+String(Math.round(v.d)).padStart(3,'0')+'°</small>'+on+'</div>')}
  if(!col.length){sel=null;bolla();return}
  const p=map.latLngToContainerPoint(sel),cls='bolla'+(p.x+215>innerWidth?' sx':'')+(p.y<130?' giu':'');
  const html='<div class="pt"><i></i><div class="'+cls+'">'+col.join('')+'</div></div>';
  if(!mk)mk=L.marker(sel,{interactive:false,keyboard:false,icon:L.divIcon({className:'',html:html,iconSize:[0,0]})}).addTo(map);else{mk.setLatLng(sel);mk.setIcon(L.divIcon({className:'',html:html,iconSize:[0,0]}))}}
-map.on('click',e=>{const v=valori(h,e.latlng);sel=v?e.latlng:null;bolla();dettagli()});
+map.on('click',e=>{if(sel){sel=null}else{const v=valori(h,e.latlng);sel=v?e.latlng:null}bolla();dettagli()});
 map.on('zoomend',()=>{if(sel)bolla()});
 // ---- cassetto
 function giorni(){let s='';for(let n=0;n<NH;n++){const t=new Date(ORE[n].t+':00Z'),hr=+new Intl.DateTimeFormat('en-GB',{hour:'numeric',hourCycle:'h23',timeZone:'Europe/Rome'}).format(t),x=(n/(NH-1)*100).toFixed(2);
  if(hr===0&&n>0)s+='<i style="left:'+x+'%"></i>';if(hr===12)s+='<em style="left:'+x+'%">'+new Intl.DateTimeFormat('it',{weekday:'short',timeZone:'Europe/Rome'}).format(t)+'</em>'}Q('gg').innerHTML=s}
-function legenda(){if(strato==='pioggia'){Q('sc').style.gridTemplateColumns='repeat(6,1fr)';Q('sc').innerHTML=SP.map(s=>'<div><i style="background:'+rgb(s[1])+'"></i>'+num(s[0],s[0]<1?1:0)+'</div>').join('')+'<div><i style="background:rgb(150,60,190)"></i>⚡</div>';Q('un').textContent='mm/h'}
+function legenda(){if(strato==='onde'){Q('sc').style.gridTemplateColumns='repeat(8,1fr)';Q('sc').innerHTML=SO.map(s=>'<div><i style="background:'+rgb(s[1])+'"></i>'+num(s[0],s[0]%1?(s[0]<1?2:1):0)+'</div>').join('');Q('un').textContent='onda, metri'+(OD?' · '+OD.modello:'');return}
+ if(strato==='pioggia'){Q('sc').style.gridTemplateColumns='repeat(6,1fr)';Q('sc').innerHTML=SP.map(s=>'<div><i style="background:'+rgb(s[1])+'"></i>'+num(s[0],s[0]<1?1:0)+'</div>').join('')+'<div><i style="background:rgb(150,60,190)"></i>⚡</div>';Q('un').textContent='mm/h'}
  else{Q('sc').style.gridTemplateColumns='repeat(8,1fr)';Q('sc').innerHTML=WS.map(s=>'<div><i style="background:'+rgb(sfuma(WS,s[0]+2))+'"></i>'+s[0]+'</div>').join('');Q('un').textContent=strato==='raff'?'raffiche, nodi':'vento, nodi'}}
 function dettagli(){const m=ORE[h];
  const reg=m.a2==null?'':m.a2>=1?'Aria rimescolata: il vento scavalca i monti.':m.a2>=0.25?'Aria poco stabile: il vento in parte scavalca, in parte aggira i monti.':'Aria stabile: il vento aggira i monti e lascia ridossi lunghi.';
  Q('aria').textContent=reg+(m.q?' A 750 m: '+m.q[0]+' nodi da '+ROSA[Math.round(m.q[1]/22.5)%16]+'.':'');
  if(!sel){Q('punto').innerHTML='<p class="vuoto">Tocca la carta in un punto: accanto al dito compaiono vento e direzione adesso, tra 1 e tra 2 ore. Qui sotto, le prossime ore.</p>';return}
  let r='';for(let dh=0;dh<8;dh++){const n=h+dh;if(n>=NH)break;const v=valori(n,sel);if(!v)break;
-  r+='<tr><td>'+soloOra(ORE[n].t)+'</td><td><b>'+num(v.s,0)+'</b></td><td>'+num(v.g,0)+'</td><td>'+ROSA[Math.round(v.d/22.5)%16]+' '+String(Math.round(v.d)).padStart(3,'0')+'°</td><td>'+forza(v.s)+'</td><td>'+(v.t>0.15?'⚡':(v.p>=0.1?num(v.p,1):'–'))+'</td></tr>'}
+  r+='<tr><td>'+soloOra(ORE[n].t)+'</td><td><b>'+num(v.s,0)+'</b></td><td>'+num(v.g,0)+'</td><td>'+ROSA[Math.round(v.d/22.5)%16]+' '+String(Math.round(v.d)).padStart(3,'0')+'°</td><td>'+forza(v.s)+'</td><td>'+(v.t>0.15?'⚡':(v.p>=0.1?num(v.p,1):'–'))+'</td><td>'+(v.w?num(v.w.h,1)+' m'+(v.w.p?' '+num(v.w.p,0)+'s':''):'–')+'</td></tr>'}
  const v0=valori(h,sel);
- Q('punto').innerHTML='<p><b>'+sel.lat.toFixed(4)+'° N, '+sel.lng.toFixed(4)+'° E</b> · '+(v0&&v0.mare?'mare':'terra')+(v0?' · '+NOMI[Math.round(v0.d/45)%8]:'')+'</p><table class="tab"><tr><th>ora</th><th>nodi</th><th>raffica</th><th>da</th><th>Bft</th><th>pioggia</th></tr>'+r+'</table>'}
-function tutto(){Q('tl').textContent=fmtOra(ORE[h].t);immagine();bolla();dettagli();legenda()}
+ Q('punto').innerHTML='<p><b>'+sel.lat.toFixed(4)+'° N, '+sel.lng.toFixed(4)+'° E</b> · '+(v0&&v0.mare?'mare':'terra')+(v0?' · '+NOMI[Math.round(v0.d/45)%8]:'')+'</p><table class="tab"><tr><th>ora</th><th>nodi</th><th>raffica</th><th>da</th><th>Bft</th><th>pioggia</th><th>onda</th></tr>'+r+'</table>'}
+function tutto(){Q('tl').textContent=fmtOra(ORE[h].t);immagine();bolla();dettagli();legenda();frecceOnde()}
 document.querySelectorAll('.strati button[data-v]').forEach(b=>b.addEventListener('click',()=>{strato=b.dataset.v;document.querySelectorAll('.strati button[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b));tutto();aggiornaFlusso()}));
 Q('flx').addEventListener('click',()=>{flusso=!flussoOn();aggiornaFlusso()});
 const cur=Q('cur');cur.max=NH-1;cur.value=h;cur.addEventListener('input',()=>{h=+cur.value;tutto()});
@@ -228,9 +255,9 @@ def pagina(dati):
 <meta name="theme-color" content="#9c1a24"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pistrice Lab"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>{_leggi('web', 'leaflet.css')}{fonti()}{CSS}</style></head><body>
-<div id="map"></div><canvas id="pc"></canvas>
+<div id="map"></div><canvas id="oc"></canvas><canvas id="pc"></canvas>
 <div class="brand" id="brand"><img src="logo.png" alt="Pistrice Sailing"><div><b>Pistrice Sailing</b><small>Weather Lab</small></div></div>
-<div class="strati"><button type="button" data-v="vento" aria-pressed="true">Vento</button><button type="button" data-v="raff" aria-pressed="false">Raffiche</button><button type="button" data-v="pioggia" aria-pressed="false">Pioggia</button><button type="button" id="flx" aria-pressed="true" title="Scie del vento">≋ scie</button></div>
+<div class="strati"><button type="button" data-v="vento" aria-pressed="true">Vento</button><button type="button" data-v="raff" aria-pressed="false">Raffiche</button><button type="button" data-v="pioggia" aria-pressed="false">Pioggia</button><button type="button" data-v="onde" aria-pressed="false">Onde</button><button type="button" id="flx" aria-pressed="true" title="Scie del vento">≋ scie</button></div>
 <div id="cas"><button type="button" class="maniglia" id="man" aria-label="apri il cassetto"><span></span></button>
 <div id="base"><div class="ora"><b id="tl"></b><span id="un"></span></div>
 <div class="riga"><button type="button" class="tb" id="prima" aria-label="ora prima">‹</button><button type="button" class="tb" id="play" aria-label="scorri">▶</button><button type="button" class="tb" id="dopo" aria-label="ora dopo">›</button>
@@ -240,7 +267,8 @@ def pagina(dati):
 <h3>L'aria adesso</h3><p id="aria"></p>
 <h3>Come è fatta</h3>
 <p>Vento e raffiche a 10 m, in nodi, su quadretti di {dati['dx']:.0f} m. Il vento di {dati['modello']} è ricalcolato sul rilievo vero con il metodo Lens{l2}: ridossi, accelerazioni sui capi e vento che si incanala tra i monti. Pioggia e temporali vengono da ICON-2I.</p>
-<p>Si allarga con due dita; la carta resta nitida. Le scie bianche mostrano il flusso: si spengono con «≋ scie».</p>
+<p>Si allarga con due dita; la carta resta nitida. Le scie bianche mostrano il flusso: si spengono con «≋ scie». Un tocco sulla carta mostra i valori del punto, un altro li toglie.</p>
+<p>Onde: altezza significativa, direzione e periodo da {(dati.get('onde') or {}).get('modello', 'un modello del mare')} via Open-Meteo Marine, senza rielaborazione. Sotto costa vale il dato del largo più vicino: la rifrazione e i ridossi delle onde non sono ancora calcolati.</p>
 <p>Aggiornata il {gen:%d/%m alle %H:%M}, due volte al giorno. <span id="vecchio" style="color:#9a5b00;font-weight:600"></span></p>
 <p style="font-size:11.5px;color:#6b6e74">Fonti: ECMWF e ICON-2I via Open-Meteo.com (CC BY 4.0); Copernicus Sentinel-1; Copernicus DEM GLO-30; ESA WorldCover 2021 (CC BY 4.0); © OpenStreetMap contributors (ODbL); Leaflet (BSD).</p>
 <div class="firma"><img src="logo.png" alt=""><p><b>Pistrice Sailing · Weather Lab</b><br>Il vento del golfo, per chi esce in mare.</p></div>

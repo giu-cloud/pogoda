@@ -124,6 +124,25 @@ def main():
                 n_t += 1
         totale += n_t
         print(f"zoom {z}: {W}x{H} px, {n_t} tessere, {passo:.1f} m/px")
+    # linea di costa vettoriale (sopra i colori del vento, perche' il posto si riconosca sempre)
+    try:
+        import contourpy
+        fa30 = acqua.reshape(ny30, 3, nx30, 3).mean(axis=(1, 3))
+        campo_m = np.where(dem <= 0.5, fa30, 0.0)
+        linee = []
+        for ln in contourpy.contour_generator(z=gaussian_filter(campo_m, 0.6)).lines(0.5):
+            if len(ln) < 6:
+                continue
+            la_ = n - (ln[:, 0] + 0.5) / ny30 * (n - s)
+            lo_ = o + (ln[:, 1] + 0.5) / nx30 * (e - o)
+            dentro = (la_ > si - 0.05) & (la_ < ni + 0.05) & (lo_ > oi - 0.06) & (lo_ < ei + 0.06)
+            if dentro.sum() < 4:
+                continue
+            linee.append([[round(float(a_), 5), round(float(b_), 5)] for a_, b_ in zip(la_[::2], lo_[::2])])
+        json.dump(linee, open(os.path.join(USCITA, "costa.json"), "w"), separators=(",", ":"))
+        print("costa:", len(linee), "linee,", sum(len(x) for x in linee), "punti")
+    except Exception as ex:
+        print("costa non fatta:", ex)
     # i nomi, con latitudine e longitudine, in ordine di importanza
     luoghi = []
     for nome, fx, fy, pri, tipo in C.luoghi(el):

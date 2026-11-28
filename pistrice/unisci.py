@@ -67,8 +67,15 @@ def main():
         a = np.stack(blocchi[k])
         bin_.append((np.diff(np.concatenate([np.zeros((1, n), np.int64), a]), axis=0) % 256).astype(np.uint8).ravel())
     pacco = {"ore": meta, "mare": d["_P"]["mare"]}
+    onde = None
+    try:
+        sys.path.insert(0, QUI)
+        from onde import leggi
+        onde = leggi(d["interno"], [m["t"] for m in meta])
+    except Exception as ex:
+        print("onde non lette:", ex)
     dati = {k: d[k] for k in ("nx", "ny", "dx", "m", "NX", "NY", "gx", "gy", "interno", "generato") if k in d}
-    dati.update({"modello": d.get("nome_modello") or d.get("modello"), "lens2": bool(d.get("lens2")),
+    dati.update({"modello": d.get("nome_modello") or d.get("modello"), "lens2": bool(d.get("lens2")), "onde": onde,
                  "gz": base64.b64encode(gzip.compress(json.dumps(pacco, separators=(",", ":")).encode(), 9)).decode(),
                  "bin": base64.b64encode(gzip.compress(np.concatenate(bin_).tobytes(), 9)).decode()})
     sys.path.insert(0, QUI)
