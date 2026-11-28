@@ -49,7 +49,7 @@ ID = "".join(c for c in (os.environ.get("LENS_ID") or "") if c.isalnum() or c in
 os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
 os.environ.setdefault("AWS_NO_SIGN_REQUEST", "YES")
 
-PALERMO = {"area": (37.945, 38.287, 13.108, 13.612), "nome": "Pistrice Sailing Weather Lab", "casa": None,
+PALERMO = {"area": (37.945, 38.345, 13.108, 13.612), "nome": "Pistrice Sailing Weather Lab", "casa": None,
            "viste": {"Tutto": None, "Due golfi": (38.060, 38.250, 13.250, 13.560), "Mondello": (38.170, 38.240, 13.272, 13.372),
                      "Golfo di Palermo": (38.085, 38.200, 13.340, 13.500),
                      # Pietro's Place (il suo bar) al centro, stessa misura della vista del golfo di Palermo
